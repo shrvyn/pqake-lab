@@ -60,9 +60,15 @@ finalize). The AKE "matching sessions" property therefore fails.
   a fresh responder and is rejected. Test a5 passes with the check in place.
 * Symbolic check: `model/pqake_replay_fixed.pv` proves `event(acceptB) ==> event(startA)`
   (agreement, so every B session pairs with an A that began it) and the injective
-  `doneB ==> doneA`; ProVerif leaves `injective event(acceptB) ==> event(startA)` undecided
-  because the fold that remembers `NA` sits in the table's negative branch, which is outside
-  its fragment - recorded in RESULTS.md section 7.2, not claimed as a proof.
+  `doneB ==> doneA`; ProVerif still answers *false* to `injective event(acceptB) ==>
+  injective event(startA)`, because the memory eq 4-6a needs sits in the negative branch of a
+  table read, which is outside its Horn-clause fragment - reproduced minimally in
+  `model/limitation_table_else.pv`, RESULTS.md section 7.2. That single statement is now
+  decided by a second tool: Tamarin 1.12 verifies `injective_agreement` on the repaired model
+  (9 proof steps) and finds no replay trace in it at all (`replay_trace_excluded`,
+  *falsified - no trace found*), while the same rules without the marker falsify it and
+  verify the replay itself (`model/pqake.spthy`, `replay_trace_exists`). Transcripts:
+  RESULTS.md section 2c, `model/logs/*.tamarin.log`.
 
 ## F3 - the documented internal state contradicts the PCS claim
 
@@ -168,10 +174,14 @@ What still holds, and is the part of the design worth defending: 5-4-1 eq (11-5)
 ## What the harness could not do here
 
 * No proof in the computational model (QROM, ACCE game-hopping) - only a symbolic/executable
-  test. ProVerif 2.05 is executed (RESULTS.md section 2b, `model/ACCE-PQAKE.md`); Tamarin is
-  not, and the two statements ProVerif's fragment cannot decide are recorded as such: the
-  arithmetic of F1 (section 7.1) and injective agreement through a table's negative branch
-  (section 7.2).
+  test. ProVerif 2.05 is executed (RESULTS.md section 2b, `model/ACCE-PQAKE.md`), and so is
+  Tamarin 1.12 on a Linux runner for the two phase-1 models (RESULTS.md section 2c). Of the
+  two statements that were open after ProVerif, one is now closed by the second tool -
+  injective agreement for the repaired handshake, which ProVerif's fragment cannot express
+  (section 7.2) and Tamarin verifies - and one remains open because no symbolic model can
+  express it: the arithmetic of F1, where `usk = h_ID * s1` is ring arithmetic rather than a
+  free-algebra destructor (section 7.1); it is established executably instead
+  (`lab/claims.py::c2`).
 * No Cortex-M4 cycles measured locally; section 4 of RESULTS.md quotes pqm4's published
   table instead.
 * The IBS is a prototype, so its constant-time properties were not examined.

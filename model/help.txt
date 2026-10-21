@@ -1,0 +1,97 @@
+tamarin-prover [COMMAND] ... [OPTIONS] FILES
+  Security protocol analysis and verification.
+
+Commands:
+  interactive  Start a web-server to construct proofs interactively.
+  variants     Compute the variants of the intruder rules for DH-exponentiation.
+  test         Self-test the tamarin-prover installation.
+
+Flags:
+     --prove[=LEMMAPREFIX*|LEMMANAME]                                       Attempt to prove all lemmas
+                                                                            that start with LEMMAPREFIX or
+                                                                            the lemma which name is LEMMANAME
+                                                                            (can be repeated).
+     --lemma[=LEMMAPREFIX*|LEMMANAME]                                       Select lemma(s) by name or
+                                                                            prefx (can be repeated)
+     --stop-on-trace[=DFS|BFS|SEQDFS|SORRY|NONE]                            How to search for traces
+                                                                            (default DFS)
+  -b --bound[=INT]                                                          Bound the depth of the proofs
+     --heuristic[=(C|I|O|P|S|c|i|o|p|s|{.})+]                               Sequence of proof method
+                                                                            rankings to use (default 's')
+     --partial-evaluation[=SUMMARY|VERBOSE]                                 Partially evaluate multiset
+                                                                            rewriting system
+  -D --defines[=STRING]                                                     Define flags for
+                                                                            pseudo-preprocessor.
+     --diff                                                                 Turn on observational
+                                                                            equivalence mode using diff
+                                                                            terms.
+     --quit-on-warning                                                      Strict mode that quits on any
+                                                                            warning that is emitted.
+     --auto-sources                                                         Try to auto-generate sources
+                                                                            lemmas
+     --oraclename[=FILE]                                                    Path to the oracle heuristic
+                                                                            (default
+                                                                            './theory_filename.oracle',
+                                                                            fallback './oracle')
+     --oracle-only                                                          When set, the oracle heuristic
+                                                                            will stop proof search if the
+                                                                            oracle does not rank any proof
+                                                                            goals.
+     --quiet                                                                Do not display computation
+                                                                            steps of oracle or tactic.
+  -v --verbose                                                              Display full information when
+                                                                            calculating proof.
+  -c --open-chains[=PositiveInteger]                                        Limits the number of open
+                                                                            chains to be resoled during
+                                                                            precomputations (default 10)
+  -s --saturation[=PositiveInteger]                                         Limits the number of
+                                                                            saturations during
+                                                                            precomputations (default 5)
+  -d --derivcheck-timeout[=INT]                                             Set timeout for message
+                                                                            derivation checks in sec (default
+                                                                            5). 0 deactivates check.
+     --no-reuse                                                             Do not export reuse or source
+                                                                            lemmas
+     --no-restrictions                                                      Do not export restrictions
+     --replication-bound[=INT]                                              Replication bound for DeepSec
+                                                                            export
+     --no-compress                                                          Do not use compressed sequent
+                                                                            visualization
+     --parse-only                                                           Just parse the input file and
+                                                                            pretty print it as-is
+     --precompute-only                                                      Just run precomputation and
+                                                                            show partial deconstructions
+  -o --output[=FILE]                                                        Output file
+  -O --Output[=DIR]                                                         Output directory
+  -m --output-module[=spthytyped|spthy|msr|proverifequiv|proverif|deepsec]  What to output:
+                                                                             -spthy with explicit types
+                                                                            inferred
+                                                                             -spthy (including Sapic
+                                                                            Processes)
+                                                                             -pure msrs (with Sapic
+                                                                            translation)
+                                                                             -ProVerif export for the
+                                                                            equivalence lemmas
+                                                                             -ProVerif export for the
+                                                                            reachability lemmas
+                                                                             -DeepSec export for the
+                                                                            equivalences lemmas.
+     --output-json=FILE --oj                                                Serialize found traces as JSON
+                                                                            to FILE.
+     --output-dot=FILE --od                                                 Serialize found traces as dot
+                                                                            to FILE.
+     --with-dot[=FILE]                                                      Path to GraphViz 'dot' tool
+     --with-json[=FILE]                                                     Path to JSON rendering tool
+                                                                            (not working with --diff)
+     --with-maude[=FILE]                                                    Path to 'maude' rewriting tool
+About:
+  -? --help                                                                 Display help message
+  -V --version                                                              Print version information
+
+------------------------------------------------------------------------------
+To show help for different commands, type tamarin-prover [Command] --help.
+------------------------------------------------------------------------------
+See 'https://github.com/tamarin-prover/tamarin-prover/blob/master/README.md'
+for usage instructions and pointers to examples.
+------------------------------------------------------------------------------
+

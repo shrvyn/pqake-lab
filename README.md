@@ -3,8 +3,8 @@
 Everything measured for chapter 5, section 5.8 of the thesis (the "implementation and
 empirical testing of the claims" section): a runnable reference implementation of the
 protocol, its dual ratchet and its identity-based signature; the attack and
-state-exposure matrix; the ProVerif models; and the native measurements behind the
-overhead tables.
+state-exposure matrix; the ProVerif models and their Tamarin ports; and the native
+measurements behind the overhead tables.
 
 **32 test records — 19 security claims and 13 quantitative ones — score 26 PASS,
 3 DOCUMENTED-LIMITATION, 3 CONFIRMED-VULNERABLE, 0 FAIL.** The results are in
@@ -20,7 +20,8 @@ both are repaired here rather than merely reported:
   responder instance open a session with a peer that was not participating. Fixed by
   eq 4-6a: each node keeps a `Seen(IDB)` set of nonces it has already answered and
   refuses a repeat. Implemented in `Session.respond` (`lab/proto.py`), tested by `a5`,
-  modelled by `model/pqake_replay_fixed.pv`.
+  modelled by `model/pqake_replay_fixed.pv` and proved injective by
+  `model/pqake_replay_fixed.spthy`.
 - **F5 — a refreshed epoch's chain keys were seeded from the stored root key.** With eq
   5-6's state table, a memory scrape let an attacker walk the current epoch backwards and
   recover message keys already consumed and erased. Found by the symbolic model
@@ -46,10 +47,11 @@ F1 and F4 narrow the claims that depend on them and are listed as future work.
 | `lab/` | the implementation: `proto.py` (protocol), `net.py` (dual ratchet over an active Dolev-Yao channel + ACCE exposure oracle), `ibs.py` + `ring.py` (rank-2 module-lattice IBS), `claims.py` (security tests), `efficiency.py` (quantitative tests), `perf.py` (measurement driver) |
 | `run_claims.py` | runs all 32 claim tests and writes `claims.json` |
 | `test_ibs.py` | self-tests of the signature: completeness, soundness, escrow, master-key recovery |
-| `model/` | 9 ProVerif models of the section 5.2 properties and of both repairs; `ACCE-PQAKE.md` is the oracle game, `logs/` holds the raw transcripts |
+| `model/` | 9 ProVerif models of the section 5.2 properties and of both repairs, the two phase-1 ports to Tamarin (`.spthy`) plus two restriction probes; `ACCE-PQAKE.md` is the oracle game, `logs/` holds the raw transcripts of both tools |
 | `c/` | native C: `ibs.c` (the chapter-4 signature on the Kyber/Dilithium ring), `bench_*.c` (cycle counting), `build.sh` |
 | `results/` | `perf.json` (measured cycles, wire sizes, abort rates) and `native_ops.csv` |
 | `report.py` | renders `RESULTS.md` and `FINDINGS.md` from `claims.json`, `results/perf.json`, `model/logs/` and the pqm4 table |
+| `.github/workflows/tamarin.yml` | the Linux host for Tamarin: installs Tamarin 1.12 + Maude 3.5.1, proves every `model/*.spthy`, and publishes the transcripts to the `tamarin-logs` branch |
 
 ## Running
 
@@ -87,18 +89,26 @@ Cortex-M4 board was available, so **every microcontroller figure in this project
 quoted from published pqm4 numbers at their stated 24 MHz clock, not measured here.**
 That is flagged wherever it is used.
 
-## Two statements ProVerif could not decide
+## What ProVerif could not decide, and what a second tool decided
 
-Both are recorded as tool limits rather than as protocol results, and neither is claimed
-as a proof:
+Two statements were outside ProVerif's Horn-clause fragment, and both are recorded as tool
+limits rather than as protocol results:
 
-- the arithmetic of F1 (NTT-domain pointwise division) is outside the symbolic model; it
-  is shown by execution instead, in Python and in `c/bench_ibs.exe`.
-- injective agreement through a table read's negative branch — which is exactly the shape
-  of the `Seen(IDB)` cache in the F2 fix. `model/limitation_table_else.pv` is the minimal
-  reproduction. For the repaired handshake, `pqake_replay_fixed.pv` proves plain
-  agreement and the injective `doneB ⇒ doneA`, and leaves only the injective form of
-  `acceptB ⇒ startA` undecided.
+- the arithmetic of F1 (NTT-domain pointwise division) is outside any symbolic model; it is
+  shown by execution instead, in Python and in `c/bench_ibs.exe`. **Still open.**
+- injective agreement through a table read's negative branch — which is exactly the shape of
+  the `Seen(IDB)` cache in the F2 fix. `model/limitation_table_else.pv` is the minimal
+  reproduction: for the repaired handshake, `pqake_replay_fixed.pv` proves plain agreement
+  and the injective `doneB ⇒ doneA`, and leaves only the injective form of
+  `acceptB ⇒ startA` undecided. **This one is now decided.** The phase-1 models were ported
+  to Tamarin 1.12, which reasons about trace invariants rather than table folds, and there
+  `injective_agreement` *verifies* on the repaired model while the as-written model not only
+  falsifies it but *produces* the replay as an `exists-trace`. Tamarin 1.12 + Maude 3.5.1
+  have no Windows binary and this laptop has no JVM, WSL or container runtime, so the prover
+  ran on an `ubuntu-latest` runner of this repository
+  (`.github/workflows/tamarin.yml`), which writes the raw transcripts back to the orphan
+  branch `tamarin-logs`; they are committed under `model/logs/`. Full table: `RESULTS.md`
+  section 2c.
 
 ## Measured on
 

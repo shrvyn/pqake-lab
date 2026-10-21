@@ -1,0 +1,112 @@
+maude tool: 'maude'
+ checking version: 3.5.1. OK.
+ checking installation: OK.
+[Theory RestrictionProbeBefore] Theory loaded
+[Theory RestrictionProbeBefore] Theory translated
+[Theory RestrictionProbeBefore] Derivation checks started
+[Theory RestrictionProbeBefore] Derivation checks ended
+[Theory RestrictionProbeBefore] Theory closed
+[Saturating Sources] Step 1 (Max 5)
+[Saturating Sources] Done
+theory RestrictionProbeBefore
+
+begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, pair/2, snd/1
+equations: fst(<x.1, x.2>) = x.1, snd(<x.1, x.2>) = x.2
+
+rule (modulo E) gen:
+   [ Fr( ~k ) ] --> [ Key( ~k ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) use:
+   [ Key( k ) ] --> [ Use( k ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction one_key:
+  "∀ k1 k2 #i #j. ((Key( k1 ) @ #i) ∧ (Key( k2 ) @ #j)) ⇒ (#i = #j)"
+  // safety formula
+
+  /*
+  expanded formula:
+  "∀ k1 k2 #i #j. ((Key( k1 ) @ #i) ∧ (Key( k2 ) @ #j)) ⇒ (#i = #j)"
+  */
+
+lemma uniqueness:
+  all-traces
+  "∀ k1 k2 #i #j. ((Use( k1 ) @ #i) ∧ (Use( k2 ) @ #j)) ⇒ (k1 = k2)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ k1 k2 #i #j. (Use( k1 ) @ #i) ∧ (Use( k2 ) @ #j) ∧ ¬(k1 = k2)"
+*/
+simplify
+by solve( Use( k1 ) @ #i )
+
+lemma uniqueness_ind [use_induction]:
+  all-traces
+  "∀ k1 k2 #i #j. ((Use( k1 ) @ #i) ∧ (Use( k2 ) @ #j)) ⇒ (k1 = k2)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ k1 k2 #i #j. (Use( k1 ) @ #i) ∧ (Use( k2 ) @ #j) ∧ ¬(k1 = k2)"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  solve( (last(#j))  ∥ (last(#i))  ∥ (k1 = k2) )
+    case case_1
+    by solve( Use( k1 ) @ #i )
+  next
+    case case_2
+    by solve( Use( k1 ) @ #i )
+  next
+    case case_3
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma two_instances:
+  exists-trace
+  "∃ k1 k2 #i #j. ((Use( k1 ) @ #i) ∧ (Use( k2 ) @ #j)) ∧ (¬(#i = #j))"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ k1 k2 #i #j. (Use( k1 ) @ #i) ∧ (Use( k2 ) @ #j) ∧ ¬(#i = #j)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  by solve( Use( k1 ) @ #i )
+next
+  case case_2
+  by solve( Use( k1 ) @ #i )
+qed
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.12.0
+Maude version 3.5.1
+Git revision: 82780bbaf3328a45f624ddb41e51bf75425f851c (with uncommited changes), branch: master
+Compiled at: 2026-03-07 14:22:39.174278293 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: model/RestrictionProbeBefore.spthy
+
+  processing time: 0.10s
+  
+  uniqueness (all-traces): verified (2 steps)
+  uniqueness_ind (all-traces): verified (6 steps)
+  two_instances (exists-trace): falsified - no trace found (4 steps)
+
+==============================================================================

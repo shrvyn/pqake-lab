@@ -104,6 +104,53 @@ Same properties, exhaustive Dolev-Yao adversary over the free algebra. ProVerif 
 45 query verdicts over the 9 model files above; 8 of them are protocol models and the last is the tool-limitation reproduction. Four verdicts re-establish what the harness found (F2 uniqueness, F3 with KRA in the state, F4 with the ephemeral reveal, and the consequence of F1: all seven phase-1 statements fail once the identity keys are public), and one is new: the within-epoch break of F5, which the harness's weaker attacker had passed.
 
 
+## 2c. Symbolic verification: Tamarin 1.12, executed on a Linux runner
+
+Tamarin Prover 1.12.0 with Maude 3.5.1. Neither ships a Windows binary, and the machine this thesis was measured on has no JVM, no WSL distribution, no container runtime and no MSYS2 package for them, so the prover ran where it does exist: `.github/workflows/tamarin.yml` installs it on an `ubuntu-latest` runner of this repository and publishes the raw transcripts back to the orphan branch `tamarin-logs`; they are copied from there into `model/logs/*.tamarin.log` and versioned here. Re-run with `gh workflow run tamarin.yml`, or by any push that touches `model/`. Nothing was installed on the laptop and nothing local changed.
+
+Only the two phase-1 models are ported - `model/pqake.spthy` and the Tamarin twin of `model/pqake_replay_fixed.pv` - because the phase-1 statements are the six ProVerif answered and the purpose of the port is a cross-tool check of those. The ratchet, eCK and PKG-escrow models are not ported and nothing here claims they were. Both files analyze with `All wellformedness checks were successful`.
+
+| model | lemma | kind | verdict | proof steps |
+|---|---|---|---|---|
+| pqake - phase 1 exactly as ch.4-3 writes it (eq 4-6 has no freshness test) | payload_secrecy | all | **verified** | 12 |
+|  | aliveness | all | **verified** | 6 |
+|  | injective_agreement | all | **falsified - found trace** | 10 |
+|  | no_double_accept | all | **falsified - found trace** | 10 |
+|  | no_double_accept_plain | all | **falsified - found trace** | 10 |
+|  | key_authentication | all | **verified** | 14 |
+|  | key_authentication_inj | all | **verified** | 29 |
+|  | responder_aliveness | all | **verified** | 8 |
+|  | handshake_possible | exists | **verified** | 18 |
+|  | replay_trace_exists | exists | **verified** | 10 |
+|  | two_ltk_excluded | exists | **falsified - no trace found** | 2 |
+| pqake_replay_fixed - phase 1 with eq 4-6a, the freshness test F2 adds | payload_secrecy | all | **verified** | 12 |
+|  | aliveness | all | **verified** | 6 |
+|  | injective_agreement | all | **verified** | 9 |
+|  | no_double_accept | all | **verified** | 3 |
+|  | seen_once | all | **verified** | 2 |
+|  | accept_emits_seen | all | **verified** | 2 |
+|  | no_double_accept_plain | all | **verified** | 2 |
+|  | injective_agreement_plain | all | **verified** | 6 |
+|  | key_authentication | all | **verified** | 14 |
+|  | key_authentication_inj | all | **verified** | 29 |
+|  | responder_aliveness | all | **verified** | 8 |
+|  | handshake_possible | exists | **verified** | 18 |
+|  | replay_trace_excluded | exists | **falsified - no trace found** | 2 |
+|  | two_ltk_excluded | exists | **falsified - no trace found** | 2 |
+| RestrictionProbeBefore - tool experiment, not a protocol claim: does 1.12 enforce a restriction declared before the lemmas | uniqueness | all | **verified** | 2 |
+|  | uniqueness_ind | all | **verified** | 6 |
+|  | two_instances | exists | **falsified - no trace found** | 4 |
+| RestrictionProbeAfter - same experiment with the restriction declared after the lemmas | uniqueness | all | **verified** | 2 |
+|  | uniqueness_ind | all | **verified** | 6 |
+|  | two_instances | exists | **falsified - no trace found** | 4 |
+
+31 lemma verdicts. Read against section 2b the two tools agree on every statement they can both express: payload secrecy, aliveness, key authentication in the direction the channel supports, the injective `doneB ==> doneA` and the responder aliveness all verify in Tamarin exactly where ProVerif answers true. For the protocol as written Tamarin does better than report *false*: it produces the replay, because `replay_trace_exists` is an `exists-trace` lemma and it is verified. That is finding F2 confirmed by a second, independent tool and a different reasoning method.
+
+The statement ProVerif could not decide is now decided. `model/pqake_replay_fixed.pv` leaves `inj-event(acceptB) ==> inj-event(startA)` false because the memory eq 4-6a needs sits in the negative branch of a table read, outside ProVerif's Horn-clause fragment (reproduced minimally in `model/limitation_table_else.pv`). Tamarin reasons about trace invariants instead, and with the freshness marker in place `injective_agreement` verifies (9 steps) while the identical lemma in the as-written theory is falsified - same rules, same lemmas, one line apart. The verdict is not vacuous: the same theory verifies `handshake_possible` (an honest run that reaches DoneA and DoneB on one Ksess, 18 steps) and answers *falsified - no trace found* for `replay_trace_excluded`, so eq 4-6a removes the attack without removing the protocol, and `two_ltk_excluded` pins the model to the single `new uskA` the ProVerif process has.
+
+Method note, because it cost three runs and matters for anyone reusing these models: written as a *stored* fact (`SeenM1( na )` as a post-premise of B_accept), the freshness restriction was registered - the transcript prints it as a `safety formula` - and a lemma that merely restates it verified, yet the solver still returned the double-accept counterexample, and that counterexample violates the restriction the transcript printed. Declared over an *action* fact, i.e. as an annotation of the step that accepts, the same restriction bites, and every verdict above is from that version. `model/RestrictionProbeBefore.spthy` and `model/RestrictionProbeAfter.spthy` isolate the behaviour in a three-rule theory: enforcement holds there both with and without `use_induction`, and declaration order makes no difference, so the gap is in the interaction with the rule's KU-derived premises, not in the syntax.
+
+
 ## 3. Native primitive timings (this laptop, x86-64)
 
 | primitive | operation | cycles (min) | cycles (mean) | wall clock (mean) |

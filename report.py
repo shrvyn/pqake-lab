@@ -121,6 +121,42 @@ def formal_tables():
     return "\n".join(lines), total
 
 
+def tamarin_notes():
+    """What each ported .spthy models, and what its lemmas are for."""
+    return [
+        ("pqake", "phase 1 exactly as ch.4-3 writes it (eq 4-6 has no freshness test)"),
+        ("pqake_replay_fixed", "phase 1 with eq 4-6a, the freshness test F2 adds"),
+        ("RestrictionProbeBefore",
+         "tool experiment, not a protocol claim: does 1.12 enforce a restriction "
+         "declared before the lemmas"),
+        ("RestrictionProbeAfter",
+         "same experiment with the restriction declared after the lemmas"),
+    ]
+
+
+def tamarin_table():
+    """Tamarin verdicts, read straight out of the transcripts in
+    model/logs/*.tamarin.log, so this table cannot drift from what the prover answered."""
+    import re
+    logdir = os.path.join(HERE, "model", "logs")
+    lines = ["| model | lemma | kind | verdict | proof steps |", "|---|---|---|---|---|"]
+    n = 0
+    for name, note in tamarin_notes():
+        path = os.path.join(logdir, name + ".tamarin.log")
+        if not os.path.exists(path):
+            continue
+        rows = re.findall(r"^  (\w+) \((all|exists)-traces?\): (.*?) \((\d+) steps\)$",
+                          open(path, encoding="utf-8").read(), re.M)
+        for i, (lemma, kind, verdict, steps) in enumerate(rows):
+            lines.append("| %s | %s | %s | **%s** | %s |" % (
+                "%s - %s" % (name, _cell(note)) if i == 0 else "", lemma, kind,
+                _cell(verdict), steps))
+            n += 1
+    if n == 0:
+        return "_no model/logs/*.tamarin.log - run the `Tamarin symbolic verification` " "workflow._\n", 0
+    return "\n".join(lines), n
+
+
 def native_table(perf):
     lines = ["| primitive | operation | cycles (min) | cycles (mean) | wall clock (mean) |",
              "|---|---|---|---|---|"]
@@ -444,6 +480,52 @@ def results_md(claims, perf, rows):
       "and the consequence of F1: all seven phase-1 statements fail once the identity keys "
       "are public), and one is new: the within-epoch break of F5, which the harness's weaker "
       "attacker had passed.\n" % (nq, len(MODEL_NOTES), len(MODEL_NOTES) - 1))
+    ttab, nt = tamarin_table()
+    A("\n## 2c. Symbolic verification: Tamarin 1.12, executed on a Linux runner\n")
+    A("Tamarin Prover 1.12.0 with Maude 3.5.1. Neither ships a Windows binary, and the "
+      "machine this thesis was measured on has no JVM, no WSL distribution, no container "
+      "runtime and no MSYS2 package for them, so the prover ran where it does exist: "
+      "`.github/workflows/tamarin.yml` installs it on an `ubuntu-latest` runner of this "
+      "repository and publishes the raw transcripts back to the orphan branch "
+      "`tamarin-logs`; they are copied from there into `model/logs/*.tamarin.log` and "
+      "versioned here. Re-run with `gh workflow run tamarin.yml`, or by any push that "
+      "touches `model/`. Nothing was installed on the laptop and nothing local changed.\n")
+    A("Only the two phase-1 models are ported - `model/pqake.spthy` and the Tamarin twin of "
+      "`model/pqake_replay_fixed.pv` - because the phase-1 statements are the six ProVerif "
+      "answered and the purpose of the port is a cross-tool check of those. The ratchet, "
+      "eCK and PKG-escrow models are not ported and nothing here claims they were. Both "
+      "files analyze with `All wellformedness checks were successful`.\n")
+    A(ttab)
+    A("\n%d lemma verdicts. Read against section 2b the two tools agree on every statement "
+      "they can both express: payload secrecy, aliveness, key authentication in the "
+      "direction the channel supports, the injective `doneB ==> doneA` and the responder "
+      "aliveness all verify in Tamarin exactly where ProVerif answers true. For the protocol "
+      "as written Tamarin does better than report *false*: it produces the replay, because "
+      "`replay_trace_exists` is an `exists-trace` lemma and it is verified. That is finding "
+      "F2 confirmed by a second, independent tool and a different reasoning method.\n" % nt)
+    A("The statement ProVerif could not decide is now decided. "
+      "`model/pqake_replay_fixed.pv` leaves `inj-event(acceptB) ==> inj-event(startA)` false "
+      "because the memory eq 4-6a needs sits in the negative branch of a table read, outside "
+      "ProVerif's Horn-clause fragment (reproduced minimally in "
+      "`model/limitation_table_else.pv`). Tamarin reasons about trace invariants instead, and "
+      "with the freshness marker in place `injective_agreement` verifies (9 steps) while the "
+      "identical lemma in the as-written theory is falsified - same rules, same lemmas, one "
+      "line apart. The verdict is not vacuous: the same theory verifies `handshake_possible` "
+      "(an honest run that reaches DoneA and DoneB on one Ksess, 18 steps) and answers "
+      "*falsified - no trace found* for `replay_trace_excluded`, so eq 4-6a removes the "
+      "attack without removing the protocol, and `two_ltk_excluded` pins the model to the "
+      "single `new uskA` the ProVerif process has.\n")
+    A("Method note, because it cost three runs and matters for anyone reusing these models: "
+      "written as a *stored* fact (`SeenM1( na )` as a post-premise of B_accept), the "
+      "freshness restriction was registered - the transcript prints it as a `safety formula` "
+      "- and a lemma that merely restates it verified, yet the solver still returned the "
+      "double-accept counterexample, and that counterexample violates the restriction the "
+      "transcript printed. Declared over an *action* fact, i.e. as an annotation of the step "
+      "that accepts, the same restriction bites, and every verdict above is from that "
+      "version. `model/RestrictionProbeBefore.spthy` and `model/RestrictionProbeAfter.spthy` "
+      "isolate the behaviour in a three-rule theory: enforcement holds there both with and "
+      "without `use_induction`, and declaration order makes no difference, so the gap is in "
+      "the interaction with the rule's KU-derived premises, not in the syntax.\n")
     A("\n## 3. Native primitive timings (this laptop, x86-64)\n")
     A(native_table(perf))
     A("\nCycles are invariant-TSC ticks; the core runs at a different clock, so wall clock "
@@ -595,9 +677,15 @@ finalize). The AKE "matching sessions" property therefore fails.
   a fresh responder and is rejected. Test a5 passes with the check in place.
 * Symbolic check: `model/pqake_replay_fixed.pv` proves `event(acceptB) ==> event(startA)`
   (agreement, so every B session pairs with an A that began it) and the injective
-  `doneB ==> doneA`; ProVerif leaves `injective event(acceptB) ==> event(startA)` undecided
-  because the fold that remembers `NA` sits in the table's negative branch, which is outside
-  its fragment - recorded in RESULTS.md section 7.2, not claimed as a proof.
+  `doneB ==> doneA`; ProVerif still answers *false* to `injective event(acceptB) ==>
+  injective event(startA)`, because the memory eq 4-6a needs sits in the negative branch of a
+  table read, which is outside its Horn-clause fragment - reproduced minimally in
+  `model/limitation_table_else.pv`, RESULTS.md section 7.2. That single statement is now
+  decided by a second tool: Tamarin 1.12 verifies `injective_agreement` on the repaired model
+  (9 proof steps) and finds no replay trace in it at all (`replay_trace_excluded`,
+  *falsified - no trace found*), while the same rules without the marker falsify it and
+  verify the replay itself (`model/pqake.spthy`, `replay_trace_exists`). Transcripts:
+  RESULTS.md section 2c, `model/logs/*.tamarin.log`.
 
 ## F3 - the documented internal state contradicts the PCS claim
 
@@ -680,10 +768,14 @@ the scrape, inside the scraped epoch) while the same model does **not** reach `p
 ## What the harness could not do here
 
 * No proof in the computational model (QROM, ACCE game-hopping) - only a symbolic/executable
-  test. ProVerif 2.05 is executed (RESULTS.md section 2b, `model/ACCE-PQAKE.md`); Tamarin is
-  not, and the two statements ProVerif's fragment cannot decide are recorded as such: the
-  arithmetic of F1 (section 7.1) and injective agreement through a table's negative branch
-  (section 7.2).
+  test. ProVerif 2.05 is executed (RESULTS.md section 2b, `model/ACCE-PQAKE.md`), and so is
+  Tamarin 1.12 on a Linux runner for the two phase-1 models (RESULTS.md section 2c). Of the
+  two statements that were open after ProVerif, one is now closed by the second tool -
+  injective agreement for the repaired handshake, which ProVerif's fragment cannot express
+  (section 7.2) and Tamarin verifies - and one remains open because no symbolic model can
+  express it: the arithmetic of F1, where `usk = h_ID * s1` is ring arithmetic rather than a
+  free-algebra destructor (section 7.1); it is established executably instead
+  (`lab/claims.py::c2`).
 * No Cortex-M4 cycles measured locally; section 4 of RESULTS.md quotes pqm4's published
   table instead.
 * The IBS is a prototype, so its constant-time properties were not examined.

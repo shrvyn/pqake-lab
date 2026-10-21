@@ -110,36 +110,53 @@ the harness's `Net.blocked`/`Net.forget` tests measure, not as a correspondence 
   multi-stage or KDF-chain treatment of Barak-Domb / Cohn-Gordon et al., and the QROM part
   needs the measured unsampling of Fujii et al. This chapter claims **none** of that.
 * What this chapter does claim: a *specification-complete* reference implementation, a
-  graded exposure oracle, 19 executable games, and 41 exhaustive symbolic verdicts from
-  eight ProVerif model files - seven protocol models plus one tool-limitation
-  reproduction - that either confirm or refute each of ch.5-2's eight claims. Three
+  graded exposure oracle, 19 executable games, 45 exhaustive symbolic verdicts from nine
+  ProVerif model files - eight protocol models plus one tool-limitation
+  reproduction - and 31 Tamarin 1.12 lemma verdicts over the two phase-1 models plus two
+  restriction probes,
+  that either confirm or refute each of ch.5-2's eight claims. Three
   refutations (F1, F2, F4) are construction-level and cheap to fix; one (F3) is a
   documentation inconsistency between eq 5-5 and ch.5-2-6; one more (F5, section 7.3) is a
   within-epoch PFS gap in eq 5-6 that only the symbolic model found, and whose fix the model
   also verifies (`pqake_ratchet_minstate.pv`).
 * Symbolic verification **is executed**: ProVerif 2.05 (the official Inria Windows binary,
-  vendored under `vendor/proverif2.05/`, no system-wide install). Tamarin was not run - it
-  needs a JVM plus its Rust backends, and the properties of interest here (secrecy under a
-  graded state reveal) are inside ProVerif's fragment. The harness's Dolev-Yao tests are not
-  a substitute for the tool; they are the second opinion, and the places where the two
-  disagree are the findings.
+  vendored under `vendor/proverif2.05/`, no system-wide install) over all nine models, and
+  Tamarin 1.12 + Maude 3.5.1 over the two phase-1 models - the properties of interest in the
+  ratchet work (secrecy under a graded state reveal) are inside ProVerif's fragment, so
+  ProVerif stays the primary tool, and Tamarin is used exactly where ProVerif's fragment is
+  not enough, which is section 7.2. Tamarin ships Linux and macOS binaries only and this
+  laptop has no JVM, WSL distribution or container runtime, so the prover runs on an
+  `ubuntu-latest` GitHub Actions runner of this repository
+  (`.github/workflows/tamarin.yml`), which publishes the raw transcripts back to the orphan
+  branch `tamarin-logs`; they are versioned here as `model/logs/*.tamarin.log`. Nothing was
+  installed locally. The harness's Dolev-Yao tests are not a substitute for either tool; they
+  are the second opinion, and the places where the three disagree are the findings.
 
 ## 6. Reproduction
 
 ```sh
 python run_claims.py                             # 19 claim x attack records -> claims.json
 python -c "import lab.perf as P; P.measure()"    # primitives, wire sizes, cadence
-sh model/run_model.sh                            # 7 ProVerif models -> model/logs/*.log
+sh model/run_model.sh                            # 9 ProVerif models -> model/logs/*.log
+gh workflow run tamarin.yml && gh run watch       # Tamarin 1.12 on ubuntu-latest
+git fetch origin tamarin-logs                     # -> model/logs/*.tamarin.log
 python report.py                                 # RESULTS.md + FINDINGS.md
 ```
 
 `model/run_model.sh` locates `vendor/proverif2.05/proverif.exe` itself, writes each raw
 transcript to `model/logs/<name>.log`, and prints one line per query verdict, so every
-number in section 4 can be re-derived without reading a log by hand.
+number in section 4 can be re-derived without reading a log by hand. The Tamarin half cannot
+run on this machine at all, so `.github/workflows/tamarin.yml` is the second half: it
+installs `tamarin-prover-1.12.0-linux64-ubuntu.tar.gz` and Maude 3.5.1 into `~/.local/bin`,
+proves every `model/*.spthy` file into `model/logs/<name>.tamarin.log`, and force-pushes
+those transcripts to the orphan branch `tamarin-logs`, from which a plain `git fetch` reads
+them back - no `gh`, no Java and no container runtime needed on the local box.
 
 ## 7. What the tool could not decide, and why
 
-Three limits. None of them is hidden inside a "verified" claim.
+Three limits, each of which the tools were pushed until they gave a straight answer. None of
+them is hidden inside a "verified" claim; 7.2 has since been closed by the Tamarin port, and
+7.1 and 7.3 stay open.
 
 ### 7.1 Identity-based derivation is outside the free algebra
 
@@ -164,9 +181,28 @@ remains **false** - and it remains false in the minimal 15-line reproduction sav
 backward search does not propagate the *failure* of a `get` as a fact available to the branch
 it selects, so it cannot conclude that two acceptances must come from two distinct
 initiations. The verdict is a tool limitation, not a protocol break; keeping the reproduction
-file is what makes that claim checkable. Tamarin's lemma form, whose pattern matching does
-reason about negative branches, proves this class of statement - that is the argument for
-porting the model if a JVM becomes available.
+file is what makes that claim checkable.
+
+**7.2 is closed, and it was the reason for the port.** The same phase-1 process, written as
+Tamarin 1.12 lemmas over trace invariants instead of ProVerif correspondences, decides it:
+`model/pqake_replay_fixed.spthy` **verifies** `injective_agreement` (9 proof steps), and
+`model/pqake.spthy` - identical except for one action fact and the restriction over it -
+falsifies the same lemma and *verifies* `replay_trace_exists`, i.e. Tamarin writes the replay
+rather than merely reporting that it cannot rule it out. Neither verdict is vacuous: the
+repaired theory also verifies `handshake_possible` (an honest run reaching DoneA and DoneB on
+one `Ksess`) and answers *no trace found* for `replay_trace_excluded`. So eq 4-6a does
+restore injective agreement and ProVerif's **false** was an artefact of its fragment.
+
+What the port cost, since it is a trap for anyone reusing these models: with the freshness
+marker written as a *stored* fact (`SeenM1( na )` as a post-premise of B_accept) the
+restriction was registered - the transcript prints it as a `safety formula` - and a lemma that
+merely restates it verified, yet the solver still returned the double-accept counterexample,
+which violates that very restriction. Written as an *action* fact, annotating the step that
+accepts, the restriction bites and every verdict above is from that version.
+`model/RestrictionProbeBefore.spthy` and `model/RestrictionProbeAfter.spthy` isolate the
+behaviour in a three-rule theory: there the stored-fact form *is* enforced, with and without
+`use_induction`, and declaration order makes no difference - so the gap is in the interaction
+with a rule's KU-derived premises, not in the syntax.
 
 ### 7.3 Within-epoch PFS: the symbolic model found an attack the harness missed
 
