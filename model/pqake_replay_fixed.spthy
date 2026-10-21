@@ -2,16 +2,18 @@ theory PQAKE_phase1_replay_fixed
 begin
 
 /* -------------------------------------------------------------------------
- * P.Q.A.K.E. v1 - phase 1 AFTER the F2 repair: eq 4-6a, the freshness test
- * B never had.  Tamarin port of model/pqake_replay_fixed.pv, identical to
- * pqake.spthy except for the SeenM1 fact emitted by B_accept and the
- * one_accept_per_M1 restriction that consumes it.
+ * P.Q.A.K.E. v1 - phase 1 AFTER the F2 repair: eq 4-6a, the freshness test B
+ * never had.  Tamarin port of model/pqake_replay_fixed.pv; byte-identical to
+ * pqake.spthy except for the SeenM1 fact emitted by B_accept, the
+ * one_accept_per_M1 restriction over it, and this comment block.
  *
- * Run:  tamarin-prover --prove pqake.spthy     (see .github/workflows/tamarin.yml)
+ * Run:  tamarin-prover --prove --compute-traces pqake.spthy
+ *       (in CI: .github/workflows/tamarin.yml; transcripts land in
+ *        model/logs/pqake.tamarin.log)
  * Read: model/ACCE-PQAKE.md, FINDINGS.md (finding F2)
  *
- * Modelling decisions - identical to the ProVerif model, so that the two
- * tools can be compared lemma by lemma:
+ * Modelling decisions - one for one with model/pqake.pv, so that the two tools
+ * can be compared lemma by lemma:
  *
  *   - The IBS of eq 4-1..4-4 is idealised as a deterministic EUF-CMA signature
  *     scheme (built-in theory `signing`).  Identity-based key derivation
@@ -19,73 +21,82 @@ begin
  *     algebra, so the master-secret break F1 and the escrow claim D1 are
  *     neither provable nor refutable here; they are established executably
  *     (lab/claims.py::c2, ::d1) and symbolically only in pqake_pkg_escrow.pv.
- *   - ML-KEM-512 (FIPS 203) is an IND-CCA KEM: encapsulation to pkAe with
- *     internal randomness r emits ct0 = kemEncap(pkAe, r) and the shared
- *     secret ss0 = kemSecret(pkAe, r).  Decapsulation is modelled the way
- *     Tamarin models every destructor - by pattern matching the received
- *     ciphertext - so a ciphertext that is not an encapsulation under the
- *     receiver's own key simply makes the rule inapplicable, which is FIPS 203
- *     implicit rejection.  r is never put on the wire, so the adversary cannot
- *     form kemSecret.
+ *   - ML-KEM-512 (FIPS 203) is an IND-CCA KEM, idealised exactly as the
+ *     ProVerif model idealises it (reduc
+ *     kemDecap(kemEncap(s0, kemPK(k)), k) = s0): encapsulation draws a fresh
+ *     secret and emits a ciphertext that only the matching secret key
+ *     recovers, so it is the built-in asymmetric-encryption theory - the
+ *     ciphertext is aenc{ ss0 }pkAe and decapsulation is pattern matching
+ *     under pk(skAe).  FIPS 203's implicit rejection is the case where the
+ *     pattern does not match: the rule simply cannot be applied.
  *   - SHA3-256, HKDF and HMAC are free constructors: no equations, so equality
  *     of two derived terms forces equality of their inputs (random-oracle
  *     idealisation, same as ProVerif's one-way constructors).
- *   - na, nb, skAe and r are fresh names, i.e. the model gives the protocol
- *     every nonce and ephemeral key it asks for.  What it does NOT give B is
- *     any means of noticing that an M1 it has already accepted is being handed
- *     to it again - which is finding F2.
- *
- * In THIS file the cache is eq 4-6a: B remembers every (ID_A, NA) pair it has
- * accepted and refuses a second one.  ProVerif cannot use the negative branch
- * of a table read to prove injectivity (model/limitation_table_else.pv), so it
- * reports Q3 false here for a spurious reason; Tamarin reasons about trace
- * invariants, which is what this port is for.
- *   - Long-term identity keys are honest by construction: the only rules that
- *     create them are PKG_* below, and no rule ever outputs one, so there is
- *     no reveal oracle in this model (mirrors the `free uskA/uskB` of the
- *     ProVerif process, and the "honest long-term keys" row of table 5-5).
+ *   - na, skAe and ss0 are fresh names, i.e. the model gives the protocol every
+ *     nonce and ephemeral key it asks for.  What it does NOT give B is any
+ *     means of noticing that an M1 it has already accepted is being handed to
+ *     it again - which is finding F2.
+
+ In THIS file the cache is eq 4-6a: B remembers every (ID_A, NA) pair it has
+ accepted and refuses a second one.  ProVerif cannot use the negative branch of
+ a table read to prove injectivity (model/limitation_table_else.pv reproduces
+ that limitation), so it reports Q3 false here for a reason that is an artefact
+ of the tool rather than of the protocol.  Tamarin reasons about trace
+ invariants, which is what this port is for: if eq 4-6a really does rule the
+ replay out, Q3 and no_double_accept must come back verified.
+ *   - Long-term identity keys are honest by construction: PKG_gen is the only
+ *     rule that creates them, no rule ever outputs one (so there is no reveal
+ *     oracle here, mirroring `free uskA/uskB` in the ProVerif process and the
+ *     "honest long-term keys" row of table 5-5), and one_key_per_identity keeps
+ *     the model to the single key pair the ProVerif process has.
  * ------------------------------------------------------------------------- */
 
-builtins: signing, symmetric-encryption
-
-/* ---------- ML-KEM-512 (eq 4-5, 4-8, 4-10) ---------- */
-
-functions: kemPK/1, kemEncap/2, kemSecret/2
+builtins: signing, symmetric-encryption, asymmetric-encryption
 
 /* ---------- SHA3-256 / HKDF / HMAC (eq 4-11 .. 4-20) ---------- */
 
 functions:
-  hkSalt/4,      //  salt = H(IDA | IDB | NA | NB)                       eq 4-12 
-  hkExtract/2,   //  PRK0 = Extract(salt, ss0)                           eq 4-13 
-  hkExpand/2,    //  Kconf, Ksess                                        eq 4-14..4-19 
-  macOf/2,       //  HMAC over the transcript                            eq 4-20 
-  confOf/2,      //  th1 = H(TH | MACB), the input of MACA               eq 4-20 
-  transOf/8      //  TH  = H(IDA|IDB|NA|NB|pkAe|ct0|sigmaA|sigmaB)       eq 4-11 
+  hkSalt/4,      //  salt = H(IDA | IDB | NA | NB)                       eq 4-12
+  hkExtract/2,   //  PRK0 = Extract(salt, ss0)                           eq 4-13
+  hkExpand/2,    //  Kconf, Ksess                                        eq 4-14..4-19
+  macOf/2,       //  HMAC over the transcript                            eq 4-20
+  confOf/2,      //  th1 = H(TH | MACB), the input of MACA               eq 4-20
+  transOf/8      //  TH  = H(IDA|IDB|NA|NB|pkAe|ct0|sigmaA|sigmaB)       eq 4-11
 
 /* no equations: every symbol above is a free constructor */
 
-/* ---------- identities, keys and the ACCE test payloads ---------- */
+/* ---------- PKG: one honest identity key per role (eq 4-1..4-4) ---------- */
 
-rule PKG_gen_A:
-  [ Fr( ~uskA ) ]
+rule PKG_gen:
+  [ Fr( ~uskA ), Fr( ~uskB) ]
   -->
-  [ !Ltk( 'A', ~uskA ) ]
+  [ !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ) ]
 
-rule PKG_gen_B:
-  [ Fr( ~uskB ) ]
-  -->
-  [ !Ltk( 'B', ~uskB ) ]
+restriction one_key_per_identity:
+  "All id k1 k2 #i #j.
+     !Ltk( id, k1 ) @ i & !Ltk( id, k2 ) @ j
+     ==>
+     #i = #j"
+
+/* eq 4-6a read as a trace invariant: no M1 is accepted twice.  ProVerif's
+   equivalent is "get seenM1(=A,=NA) in ... else insert seenM1(A, NA)", whose
+   else-branch it cannot tie back to the insert. */
+restriction one_accept_per_M1:
+  "All na #i #j.
+     SeenM1( na ) @ i & SeenM1( na ) @ j
+     ==>
+     #i = #j"
 
 /* The two payloads the test session protects (ProVerif: free payloadA/payloadB). */
 rule Test_payloads:
   [ Fr( ~pA ), Fr( ~pB ) ]
-  -->
+  --[ CreatedPayload( 'A', ~pA ), CreatedPayload( 'B', ~pB ) ]->
   [ !Test( 'A', ~pA ), !Test( 'B', ~pB ) ]
 
 /* ---------- initiator A: eq 4-4, 4-5 ---------- */
 
 rule A_start:
-  let pkAe = kemPK( ~skAe )
+  let pkAe = pk( ~skAe )
       m1   = < 'A', 'B', pkAe, ~na, sign{ 'A', 'B', pkAe, ~na }~uskA >
   in
     [ Fr( ~na )
@@ -100,11 +111,11 @@ rule A_start:
 /* ---------- responder B: eq 4-6, 4-7, 4-8, and B's half of 4-11..4-20 ---------- */
 
 rule B_accept:
-  let ct0   = kemEncap( pkAe, ~r )
+  let ct0   = aenc{ ~ss }pkAe
       sigA  = sign{ 'A', 'B', pkAe, na }~uskA
       sigB  = sign{ 'B', 'A', ~nb, ct0, na }~uskB
       th    = transOf( 'A', 'B', na, ~nb, pkAe, ct0, sigA, sigB )
-      prk   = hkExtract( hkSalt( 'A', 'B', na, ~nb ), kemSecret( pkAe, ~r ) )
+      prk   = hkExtract( hkSalt( 'A', 'B', na, ~nb ), ~ss )
       kconf = hkExpand( prk, <'Kconf', th> )
       m1    = < 'A', 'B', pkAe, na, sigA >
       m2    = < ~nb, ct0, sigB >
@@ -113,29 +124,29 @@ rule B_accept:
     , !Ltk( 'A', ~uskA )
     , !Ltk( 'B', ~uskB )
     , Fr( ~nb )
-    , Fr( ~r )
+    , Fr( ~ss )
     ]
   --[ AcceptB( na, pkAe, ~nb ) ]->
     [ Out( m2 )
     , Out( macOf( kconf, th ) )
-    , StB( na, pkAe, ~nb, ~r )
-    , SeenM1( na )                   //  eq 4-6a: this (ID_A, NA) is spent 
+    , StB( na, pkAe, ~nb, ~ss )
+    , SeenM1( na )   //  eq 4-6a: this (ID_A, NA) is spent
     ]
 
 /* ---------- B: MACA check, eq 4-20; then the first protected message ---------- */
 
 rule B_finish:
-  let ct0   = kemEncap( pkAe, r )
+  let ct0   = aenc{ ss }pkAe
       sigA  = sign{ 'A', 'B', pkAe, na }~uskA
       sigB  = sign{ 'B', 'A', nb, ct0, na }~uskB
       th    = transOf( 'A', 'B', na, nb, pkAe, ct0, sigA, sigB )
-      prk   = hkExtract( hkSalt( 'A', 'B', na, nb ), kemSecret( pkAe, r ) )
+      prk   = hkExtract( hkSalt( 'A', 'B', na, nb ), ss )
       kconf = hkExpand( prk, <'Kconf', th> )
       ksess = hkExpand( prk, <'Ksess', th> )
       macB  = macOf( kconf, th )
       macA  = macOf( kconf, confOf( th, macB ) )
   in
-    [ StB( na, pkAe, nb, r )
+    [ StB( na, pkAe, nb, ss )
     , !Ltk( 'A', ~uskA )
     , !Ltk( 'B', ~uskB )
     , !Test( 'B', pB )
@@ -148,12 +159,12 @@ rule B_finish:
 /* ---------- initiator A: eq 4-9, 4-10, 4-11..4-20 ---------- */
 
 rule A_finish:
-  let pkAe  = kemPK( skAe )
-      ct0   = kemEncap( pkAe, r )
+  let pkAe  = pk( skAe )
+      ct0   = aenc{ ss0 }pkAe
       sigA  = sign{ 'A', 'B', pkAe, na }~uskA
       sigB  = sign{ 'B', 'A', nb, ct0, na }~uskB
       th    = transOf( 'A', 'B', na, nb, pkAe, ct0, sigA, sigB )
-      prk   = hkExtract( hkSalt( 'A', 'B', na, nb ), kemSecret( pkAe, r ) )
+      prk   = hkExtract( hkSalt( 'A', 'B', na, nb ), ss0 )
       kconf = hkExpand( prk, <'Kconf', th> )
       ksess = hkExpand( prk, <'Ksess', th> )
       macB  = macOf( kconf, th )
@@ -171,15 +182,6 @@ rule A_finish:
     , Out( senc{ 'A', pA }ksess )
     ]
 
-/* eq 4-6a read as a trace invariant: no M1 is accepted twice.  ProVerif's
-   equivalent is "get seenM1(=A,=NA) in ... else insert seenM1(A, NA)", whose
-   else-branch it cannot tie back to the insert. */
-restriction one_accept_per_M1:
-  "All na #i #j.
-     SeenM1( na ) @ i & SeenM1( na ) @ j
-     ==>
-     #i = #j"
-
 /* =========================================================================
  * Properties - the queries of pqake.pv, plus a consistency check so that a
  * vacuous "holds" cannot be mistaken for a proof.
@@ -188,7 +190,7 @@ restriction one_accept_per_M1:
 /* Q1 secrecy of what the session key protects, for both roles */
 lemma payload_secrecy:
   "All who p #i.
-     Test( who, p ) @ i
+     CreatedPayload( who, p ) @ i
      ==>
      not( Ex #k. K( p ) @ k )"
 
@@ -202,12 +204,20 @@ lemma aliveness:
 /* Q3 injective agreement: one accepted M1 cannot be spent twice.
       This is the statement ProVerif could not decide for the repaired
       handshake; see FINDINGS.md F2 and model/limitation_table_else.pv. */
-lemma injective_agreement:
+lemma injective_agreement [use_induction]:
   "All na pkAe nb #i.
      AcceptB( na, pkAe, nb ) @ i
      ==>
      ( Ex #j. StartA( na, pkAe ) @ j & j < i
        & not( Ex nb2 #i2. AcceptB( na, pkAe, nb2 ) @ i2 & not( #i = #i2 ) ) )"
+
+/* The second conjunct of Q3 on its own: this is the lemma that tests whether
+   one_accept_per_M1 is actually enforced. */
+lemma no_double_accept [use_induction]:
+  "All na pkAe nb1 nb2 #i #j.
+     AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
+     ==>
+     #i = #j"
 
 /* Q4 key authentication in the direction the channel can support */
 lemma key_authentication:
@@ -217,7 +227,7 @@ lemma key_authentication:
      ( Ex #j. DoneA( na, nb, ks ) @ j & j < i )"
 
 /* Q5 the same, injective: one finished B session per finished A session */
-lemma key_authentication_inj:
+lemma key_authentication_inj [use_induction]:
   "All na nb ks #i.
      DoneB( na, nb, ks ) @ i
      ==>

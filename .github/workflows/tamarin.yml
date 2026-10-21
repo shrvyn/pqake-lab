@@ -45,7 +45,7 @@ jobs:
           for f in model/*.spthy; do
             name=$(basename "$f" .spthy)
             echo "===== $name"
-            tamarin-prover --prove "$f" > "model/logs/$name.tamarin.log" 2>&1
+            tamarin-prover --prove --compute-traces "$f" > "model/logs/$name.tamarin.log" 2>&1
             echo "exit $?"
             tail -30 "model/logs/$name.tamarin.log"
           done
