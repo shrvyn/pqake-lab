@@ -5,7 +5,7 @@ begin
  * P.Q.A.K.E. v1 - phase 1 (thesis eq 4-4 .. 4-21) exactly as written, i.e.
  * BEFORE the F2 repair.  Tamarin port of model/pqake.pv.
  *
- * Run:  tamarin-prover --prove --compute-traces pqake.spthy
+ * Run:  tamarin-prover --prove pqake.spthy
  *       (in CI: .github/workflows/tamarin.yml; transcripts land in
  *        model/logs/pqake.tamarin.log)
  * Read: model/ACCE-PQAKE.md, FINDINGS.md (finding F2)
@@ -194,6 +194,18 @@ lemma injective_agreement [use_induction]:
 /* The second conjunct of Q3 on its own, so that a falsification can be
    attributed to the missing freshness test rather than to the agreement part. */
 lemma no_double_accept [use_induction]:
+  "All na pkAe nb1 nb2 #i #j.
+     AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
+     ==>
+     #i = #j"
+
+/* The same statement without the use_induction attribute.  Control for the
+   restriction experiment (model/RestrictionProbeBefore.spthy): this theory has
+   no freshness test, so no formulation of the lemma can be verified, and if
+   pqake_replay_fixed.spthy's non-inductive version comes back verified while
+   the inductive one is falsified, the difference is how 1.12 handles
+   restrictions under induction, not the protocol. */
+lemma no_double_accept_plain:
   "All na pkAe nb1 nb2 #i #j.
      AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
      ==>

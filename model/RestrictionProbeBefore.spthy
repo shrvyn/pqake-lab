@@ -1,0 +1,66 @@
+theory RestrictionProbeBefore
+begin
+
+/* -------------------------------------------------------------------------
+ * Diagnostic, not a protocol model.
+ *
+ * Why this file exists: in pqake_replay_fixed.spthy the counterexample that
+ * Tamarin 1.12 returned for no_double_accept uses TWO instances of PKG_gen
+ * (long-term keys ~uskA and ~uskA.1 for the same identity 'A') and TWO
+ * instances of B_accept over the SAME NA, so it emits SeenM1( na ) twice.  It
+ * therefore violates both restrictions declared in that theory - one_key_per_identity
+ * and one_accept_per_M1 - and was still accepted as a trace.  That means the
+ * restriction did not constrain the proof, and until we know why, no verdict
+ * from pqake_replay_fixed.spthy can be reported as evidence for the repair.
+ *
+ * This theory isolates the question with three rules and nothing else.
+ *   gen  draws a fresh name;  use  consumes it.
+ *   one_key  says at most one Key fact may exist in a trace.
+ *   uniqueness  (all-traces)  says two uses cannot see two different names.
+ *   two_instances  (exists-trace) says two uses at two times DO exist.
+ * If restrictions are enforced, exactly one of the last two can hold:
+ *   enforced  -> uniqueness verified,        two_instances falsified (no trace)
+ *   inert     -> uniqueness falsified,       two_instances verified
+ *
+ * Variant "Before": the restriction is declared after the rules but before the
+ * lemmas.  RestrictionProbeAfter.spthy is byte-identical except that the
+ * restriction block is moved to the end of the theory, after the lemmas.
+ * ------------------------------------------------------------------------- */
+
+rule gen:
+  [ Fr( ~k ) ]
+  -->
+  [ Key( ~k ) ]
+
+rule use:
+  [ Key( k ) ]
+  -->
+  [ Use( k ) ]
+
+restriction one_key:
+  "All k1 k2 #i #j.
+     Key( k1 ) @ i & Key( k2 ) @ j
+     ==>
+     #i = #j"
+
+lemma uniqueness:
+  "All k1 k2 #i #j.
+     Use( k1 ) @ i & Use( k2 ) @ j
+     ==>
+     k1 = k2"
+
+/* The same statement proved by induction.  If uniqueness verifies but this one
+   is falsified, Tamarin 1.12 drops the restriction under use_induction, and the
+   pqake_replay_fixed.spthy lemmas must be stated without that attribute. */
+lemma uniqueness_ind [use_induction]:
+  "All k1 k2 #i #j.
+     Use( k1 ) @ i & Use( k2 ) @ j
+     ==>
+     k1 = k2"
+
+lemma two_instances:
+  exists-trace
+  "Ex k1 k2 #i #j.
+     Use( k1 ) @ i & Use( k2 ) @ j & not( #i = #j )"
+
+end

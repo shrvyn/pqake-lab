@@ -3,13 +3,14 @@ begin
 
 /* -------------------------------------------------------------------------
  * P.Q.A.K.E. v1 - phase 1 AFTER the F2 repair: eq 4-6a, the freshness test B
- * never had.  Tamarin port of model/pqake_replay_fixed.pv; byte-identical to
- * pqake.spthy except for the SeenM1 fact emitted by B_accept, the
- * one_accept_per_M1 restriction over it, and this comment block.
+ * never had.  Tamarin port of model/pqake_replay_fixed.pv; identical to
+ * pqake.spthy rule for rule except for the SeenM1 fact emitted by B_accept, the
+ * one_accept_per_M1 restriction over it, and the extra probe lemmas that test
+ * whether that restriction bites.
  *
- * Run:  tamarin-prover --prove --compute-traces pqake.spthy
+ * Run:  tamarin-prover --prove pqake_replay_fixed.spthy
  *       (in CI: .github/workflows/tamarin.yml; transcripts land in
- *        model/logs/pqake.tamarin.log)
+ *        model/logs/pqake_replay_fixed.tamarin.log)
  * Read: model/ACCE-PQAKE.md, FINDINGS.md (finding F2)
  *
  * Modelling decisions - one for one with model/pqake.pv, so that the two tools
@@ -218,6 +219,36 @@ lemma no_double_accept [use_induction]:
      AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
      ==>
      #i = #j"
+
+/* Restating one_accept_per_M1 as a lemma.  If this is falsified the restriction
+   is not constraining the search at all, and no verdict below can be read as
+   evidence about eq 4-6a. */
+lemma seen_once:
+  "All na #i #j.
+     SeenM1( na ) @ i & SeenM1( na ) @ j
+     ==>
+     #i = #j"
+
+/* Both statements above proved without the use_induction attribute.  The
+   counterexample 1.12 returned for the inductive versions uses two PKG_gen
+   instances (two long-term keys for identity 'A') and emits SeenM1( na ) twice,
+   so it violates one_key_per_identity and one_accept_per_M1 at once - see
+   model/RestrictionProbeBefore.spthy for the minimal experiment.  If these two
+   come back verified while the inductive versions are falsified, the tool's
+   handling of restrictions under induction is the whole explanation, and the
+   verdict to report for eq 4-6a is the non-inductive one. */
+lemma no_double_accept_plain:
+  "All na pkAe nb1 nb2 #i #j.
+     AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
+     ==>
+     #i = #j"
+
+lemma injective_agreement_plain:
+  "All na pkAe nb #i.
+     AcceptB( na, pkAe, nb ) @ i
+     ==>
+     ( Ex #j. StartA( na, pkAe ) @ j & j < i
+       & not( Ex nb2 #i2. AcceptB( na, pkAe, nb2 ) @ i2 & not( #i = #i2 ) ) )"
 
 /* Q4 key authentication in the direction the channel can support */
 lemma key_authentication:

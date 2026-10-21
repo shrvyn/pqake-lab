@@ -45,10 +45,13 @@ jobs:
           mkdir -p model/logs
           for f in model/*.spthy; do
             name=$(basename "$f" .spthy)
+            log="model/logs/$name.tamarin.log"
             echo "===== $name"
-            tamarin-prover --prove "$f" > "model/logs/$name.tamarin.log" 2>&1
-            echo "exit $?"
-            tail -30 "model/logs/$name.tamarin.log"
+            # bash -e is the default shell here, and one model that fails to
+            # parse must not stop the other seven from being proved.
+            tamarin-prover --prove "$f" > "$log" 2>&1 && rc=0 || rc=$?
+            echo "exit $rc"
+            tail -30 "$log"
           done
 
       - name: Verdict table
@@ -58,13 +61,17 @@ jobs:
             echo '| model | lemma | verdict |'
             echo '| --- | --- | --- |'
             for log in model/logs/*.tamarin.log; do
-              awk -v m="$(basename "$log" .tamarin.log)" '
-                /^lemma /     { lemma = $2 }
-                /holds\.|cannot be proven|counter-example/ {
-                  v = $0
-                  gsub(/^ +| +$/, "", v)
-                  printf "| %s | %s | %s |\n", m, lemma, v
-                }' "$log"
+              m=$(basename "$log" .tamarin.log)
+              # the "summary of summaries" block at the end of every transcript
+              awk -v m="$m" '/^  [a-zA-Z0-9_]+ \((all|exists)-traces\)/ {
+                               line = $0
+                               sub(/^ +/, "", line)
+                               verdict = line
+                               sub(/^[^ ]+ \([^)]*\): /, "", verdict)
+                               lemma = line
+                               sub(/ .*/, "", lemma)
+                               printf "| %s | %s | %s |\n", m, lemma, verdict
+                             }' "$log"
             done
           } >> "$GITHUB_STEP_SUMMARY"
 
