@@ -19,6 +19,8 @@ jobs:
   prove:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -71,3 +73,17 @@ jobs:
         with:
           name: tamarin-logs
           path: model/logs/*.tamarin.log
+
+      # The transcripts are published to a bot-owned branch so that they can be
+      # read back with plain `git fetch origin tamarin-logs`, without a gh
+      # install on the machine that runs the thesis.  The branch holds nothing
+      # but these logs and is overwritten by every run.
+      - name: Publish the transcripts
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan tamarin-logs
+          git add model/logs/*.tamarin.log
+          git commit -qm "Tamarin 1.12 transcripts for ${{ github.sha }} [skip ci]"
+          git push -f origin tamarin-logs
