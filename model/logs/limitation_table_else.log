@@ -1,0 +1,100 @@
+Process 0 (that is, the initial process):
+(
+    {1}!
+    {2}new n: bitstring;
+    {3}event start(n);
+    {4}out(c, f(n,sk))
+) | (
+    {5}!
+    {6}in(c, y: bitstring);
+    {7}let n_1: bitstring = g(y,sk) in
+    {10}get seen(=n_1) in
+        0
+    else
+        {8}insert seen(n_1);
+        {9}event accept(n_1)
+)
+
+-- Query inj-event(accept(n_2)) ==> inj-event(start(n_2)) in process 0.
+Translating the process into Horn clauses...
+Completing...
+Starting query inj-event(accept(n_2)) ==> inj-event(start(n_2))
+goal reachable: @sid ≠ @sid_1 && b-inj-event(start(n_2),@occ3_1) -> inj-event(accept(n_2),@occ9_1) && inj-event(accept(n_2),@occ9_2)
+Abbreviations:
+n_2 = n[!1 = @sid_2]
+@occ9_1 = @occ9[y = f(n_2,sk[]),!1 = @sid]
+@occ9_2 = @occ9[y = f(n_2,sk[]),!1 = @sid_1]
+@occ3_1 = @occ3[!1 = @sid_2]
+
+Derivation:
+Abbreviations:
+n_2 = n[!1 = @sid]
+@occ9_1 = @occ9[y = f(n_2,sk[]),!1 = @sid_1]
+@occ9_2 = @occ9[y = f(n_2,sk[]),!1 = @sid_2]
+@occ3_1 = @occ3[!1 = @sid]
+
+1. The event start(n_2) (with occurrence name @occ3_1) may be executed at {3}.
+So the message f(n_2,sk[]) may be sent to the attacker at output {4}.
+attacker(f(n_2,sk[])).
+
+2. The message f(n_2,sk[]) that the attacker may have by 1 may be received at input {6}.
+So event accept(n_2) may be executed at {9} in session @sid_2.
+inj-event(accept(n_2),@occ9_2).
+
+3. By 2, inj-event(accept(n_2),@occ9_2).
+The goal is reached, represented in the following fact:
+inj-event(accept(n_2),@occ9_2).
+
+4. The message f(n_2,sk[]) that the attacker may have by 1 may be received at input {6}.
+So event accept(n_2) may be executed at {9} in session @sid_1.
+inj-event(accept(n_2),@occ9_1).
+
+5. By 4, inj-event(accept(n_2),@occ9_1).
+The goal is reached, represented in the following fact:
+inj-event(accept(n_2),@occ9_1).
+
+6. By 5, inj-event(accept(n_2),@occ9_1).
+By 3, inj-event(accept(n_2),@occ9_2).
+We have @occ9_1 ≠ @occ9_2.
+The goals for injectivity are reached, combined in the following fact:
+inj-event(accept(n_2),@occ9_1) && inj-event(accept(n_2),@occ9_2).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new n: bitstring creating n_3 at {2} in copy a
+
+event start(n_3) at {3} in copy a
+
+out(c, ~M) with ~M = f(n_3,sk) at {4} in copy a
+
+in(c, ~M) with ~M = f(n_3,sk) at {6} in copy a_1
+
+get seen(=n_3): else branch taken at {10} in copy a_1
+
+in(c, ~M) with ~M = f(n_3,sk) at {6} in copy a_2
+
+get seen(=n_3): else branch taken at {10} in copy a_2
+
+insert seen(n_3) at {8} in copy a_2
+
+event accept(n_3) at {9} in copy a_2 (goal)
+
+insert seen(n_3) at {8} in copy a_1
+
+event accept(n_3) at {9} in copy a_1 (goal)
+
+The event accept(n_3) is executed at {9} in copy a_1.
+The event accept(n_3) is executed at {9} in copy a_2.
+A trace has been found.
+RESULT inj-event(accept(n_2)) ==> inj-event(start(n_2)) is false.
+RESULT (but event(accept(n_2)) ==> event(start(n_2)) is true.)
+
+--------------------------------------------------------------
+Verification summary:
+
+Query inj-event(accept(n_2)) ==> inj-event(start(n_2)) is false.
+
+--------------------------------------------------------------
+

@@ -1,0 +1,874 @@
+maude tool: 'maude'
+ checking version: 3.5.1. OK.
+ checking installation: OK.
+[Theory PQAKE_phase1] Theory loaded
+[Theory PQAKE_phase1] Theory translated
+[Theory PQAKE_phase1] Derivation checks started
+[Theory PQAKE_phase1] Derivation checks ended
+[Theory PQAKE_phase1] Theory closed
+[Saturating Sources] Step 1 (Max 5)
+[Saturating Sources] Step 2 (Max 5)
+[Saturating Sources] Done
+theory PQAKE_phase1
+
+begin
+
+// Function signature and definition of the equational theory E
+
+functions: adec/2, aenc/2, confOf/2, fst/1, hkExpand/2, hkExtract/2,
+           hkSalt/4, macOf/2, pair/2, pk/1, sdec/2, senc/2, sign/2, snd/1,
+           transOf/8, true/0, verify/3
+equations:
+    adec(aenc(x.1, pk(x.2)), x.2) = x.1,
+    fst(<x.1, x.2>) = x.1,
+    sdec(senc(x.1, x.2), x.2) = x.1,
+    snd(<x.1, x.2>) = x.2,
+    verify(sign(x.1, x.2), x.1, pk(x.2)) = true
+
+rule (modulo E) PKG_gen:
+   [ Fr( ~uskA ), Fr( ~uskB ) ]
+  --[ LtkGen( 'A', ~uskA ), LtkGen( 'B', ~uskB ) ]->
+   [ !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ) ]
+
+  /* has exactly the trivial AC variant */
+
+restriction one_key_per_identity:
+  "∀ id k1 k2 #i #j.
+    ((LtkGen( id, k1 ) @ #i) ∧ (LtkGen( id, k2 ) @ #j)) ⇒ (#i = #j)"
+  // safety formula
+
+  /*
+  expanded formula:
+  "∀ id k1 k2 #i #j.
+    ((LtkGen( id, k1 ) @ #i) ∧ (LtkGen( id, k2 ) @ #j)) ⇒ (#i = #j)"
+  */
+
+rule (modulo E) Test_payloads:
+   [ Fr( ~pA ), Fr( ~pB ) ]
+  --[ CreatedPayload( 'A', ~pA ), CreatedPayload( 'B', ~pB ) ]->
+   [ !Test( 'A', ~pA ), !Test( 'B', ~pB ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_start:
+   [ Fr( ~na ), Fr( ~skAe ), !Ltk( 'A', ~uskA ) ]
+  --[ StartA( ~na, pk(~skAe) ) ]->
+   [
+   Out( <'A', 'B', pk(~skAe), ~na, sign(<'A', 'B', pk(~skAe), ~na>, ~uskA)>
+   ),
+   StA( ~na, ~skAe )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_accept:
+   [
+   In( <'A', 'B', pkAe, na, sign(<'A', 'B', pkAe, na>, ~uskA)> ),
+   !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ), Fr( ~nb ), Fr( ~ss )
+   ]
+  --[ AcceptB( na, pkAe, ~nb ) ]->
+   [
+   Out( <~nb, aenc(~ss, pkAe), 
+         sign(<'B', 'A', ~nb, aenc(~ss, pkAe), na>, ~uskB)>
+   ),
+   Out( macOf(hkExpand(hkExtract(hkSalt('A', 'B', na, ~nb), ~ss),
+                       <'Kconf', 
+                        transOf('A', 'B', na, ~nb, pkAe, aenc(~ss, pkAe),
+                                sign(<'A', 'B', pkAe, na>, ~uskA),
+                                sign(<'B', 'A', ~nb, aenc(~ss, pkAe), na>, ~uskB))
+                       >),
+              transOf('A', 'B', na, ~nb, pkAe, aenc(~ss, pkAe),
+                      sign(<'A', 'B', pkAe, na>, ~uskA),
+                      sign(<'B', 'A', ~nb, aenc(~ss, pkAe), na>, ~uskB)))
+   ),
+   StB( na, pkAe, ~nb, ~ss )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) B_finish:
+   [
+   StB( na, pkAe, nb, ss ), !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ),
+   !Test( 'B', pB ),
+   In( macOf(hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss),
+                      <'Kconf', 
+                       transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                               sign(<'A', 'B', pkAe, na>, ~uskA),
+                               sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB))
+                      >),
+             confOf(transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                            sign(<'A', 'B', pkAe, na>, ~uskA),
+                            sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB)),
+                    macOf(hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss),
+                                   <'Kconf', 
+                                    transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                                            sign(<'A', 'B', pkAe, na>, ~uskA),
+                                            sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB))
+                                   >),
+                          transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                                  sign(<'A', 'B', pkAe, na>, ~uskA),
+                                  sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB)))))
+   )
+   ]
+  --[
+  DoneB( na, nb,
+         hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss),
+                  <'Ksess', 
+                   transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                           sign(<'A', 'B', pkAe, na>, ~uskA),
+                           sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB))
+                  >)
+  )
+  ]->
+   [
+   Out( senc(<'B', pB>,
+             hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss),
+                      <'Ksess', 
+                       transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                               sign(<'A', 'B', pkAe, na>, ~uskA),
+                               sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB))
+                      >))
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) A_finish:
+   [
+   StA( na, skAe ), !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ),
+   !Test( 'A', pA ),
+   In( <nb, aenc(ss0, pk(skAe)), 
+        sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB)>
+   ),
+   In( macOf(hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss0),
+                      <'Kconf', 
+                       transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                               sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                               sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB))
+                      >),
+             transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                     sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                     sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB)))
+   )
+   ]
+  --[
+  DoneA( na, nb,
+         hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss0),
+                  <'Ksess', 
+                   transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                           sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                           sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB))
+                  >)
+  )
+  ]->
+   [
+   Out( macOf(hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss0),
+                       <'Kconf', 
+                        transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                                sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                                sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB))
+                       >),
+              confOf(transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                             sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                             sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB)),
+                     macOf(hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss0),
+                                    <'Kconf', 
+                                     transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                                             sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                                             sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB))
+                                    >),
+                           transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                                   sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                                   sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB)))))
+   ),
+   Out( senc(<'A', pA>,
+             hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss0),
+                      <'Ksess', 
+                       transOf('A', 'B', na, nb, pk(skAe), aenc(ss0, pk(skAe)),
+                               sign(<'A', 'B', pk(skAe), na>, ~uskA),
+                               sign(<'B', 'A', nb, aenc(ss0, pk(skAe)), na>, ~uskB))
+                      >))
+   )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+lemma payload_secrecy:
+  all-traces
+  "∀ who p #i. (CreatedPayload( who, p ) @ #i) ⇒ (¬(∃ #k. K( p ) @ #k))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ who p #i. (CreatedPayload( who, p ) @ #i) ∧ ∃ #k. (K( p ) @ #k)"
+*/
+simplify
+solve( CreatedPayload( who, p ) @ #i )
+  case Test_payloads_case_1
+  solve( !KU( ~pA ) @ #vk )
+    case A_finish
+    solve( !KU( sign(<'B', 'A', nb, aenc(ss0, pk(~skAe)), ~na>, ~uskB)
+           ) @ #vk.10 )
+      case B_accept
+      solve( !KU( ~ss ) @ #vk.13 )
+        case B_accept
+        by solve( !KU( ~skAe ) @ #vk.23 )
+      qed
+    next
+      case c_sign
+      by solve( !KU( ~uskB ) @ #vk.23 )
+    qed
+  qed
+next
+  case Test_payloads_case_2
+  solve( !KU( ~pB ) @ #vk )
+    case B_finish
+    solve( !KU( ~ss ) @ #vk.17 )
+      case B_accept
+      solve( !KU( sign(<'A', 'B', pk(x), na>, ~uskA) ) @ #vk.16 )
+        case A_start
+        by solve( !KU( ~skAe ) @ #vk.21 )
+      next
+        case c_sign
+        by solve( !KU( ~uskA ) @ #vk.25 )
+      qed
+    qed
+  qed
+qed
+
+lemma aliveness:
+  all-traces
+  "∀ na pkAe nb #i.
+    (AcceptB( na, pkAe, nb ) @ #i) ⇒
+    (∃ #j. (StartA( na, pkAe ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na pkAe nb #i.
+  (AcceptB( na, pkAe, nb ) @ #i)
+ ∧
+  ∀ #j. (StartA( na, pkAe ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+  case PKG_gen
+  solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+    case PKG_gen
+    solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.8 )
+      case A_start
+      by contradiction /* from formulas */
+    next
+      case c_sign
+      by solve( !KU( ~uskA ) @ #vk.12 )
+    qed
+  qed
+qed
+
+lemma injective_agreement [use_induction]:
+  all-traces
+  "∀ na pkAe nb #i.
+    (AcceptB( na, pkAe, nb ) @ #i) ⇒
+    (∃ #j.
+      ((StartA( na, pkAe ) @ #j) ∧ (#j < #i)) ∧
+      (¬(∃ nb2 #i2. (AcceptB( na, pkAe, nb2 ) @ #i2) ∧ (¬(#i = #i2)))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na pkAe nb #i.
+  (AcceptB( na, pkAe, nb ) @ #i)
+ ∧
+  ∀ #j.
+   (StartA( na, pkAe ) @ #j)
+  ⇒
+   ((¬(#j < #i)) ∨
+    (∃ nb2 #i2. (AcceptB( na, pkAe, nb2 ) @ #i2) ∧ ¬(#i = #i2)))"
+*/
+induction
+  case non_empty_trace
+  solve( (last(#i))  ∥
+         (∃ #j.
+           (StartA( na, pkAe ) @ #j)
+          ∧
+           (¬(last(#j))) ∧
+           (#j < #i) ∧
+           (∀ nb2 #i2.
+             (AcceptB( na, pkAe, nb2 ) @ #i2) ⇒ ((last(#i2)) ∨ (#i = #i2)))) )
+    case case_1
+    solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+      case PKG_gen
+      solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+        case PKG_gen
+        solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.8 )
+          case A_start
+          solve( !Ltk( 'A', ~uskA.1 ) ▶₁ #i2 )
+            case PKG_gen
+            solve( !Ltk( 'B', ~uskB.1 ) ▶₂ #i2 )
+              case PKG_gen
+              solve( !KU( ~na ) @ #vk.8 )
+                case A_start
+                solve( !KU( pk(~skAe) ) @ #vk.8 )
+                  case A_start
+                  SOLVED // trace found
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma no_double_accept [use_induction]:
+  all-traces
+  "∀ na pkAe nb1 nb2 #i #j.
+    ((AcceptB( na, pkAe, nb1 ) @ #i) ∧ (AcceptB( na, pkAe, nb2 ) @ #j)) ⇒
+    (#i = #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na pkAe nb1 nb2 #i #j.
+  (AcceptB( na, pkAe, nb1 ) @ #i) ∧ (AcceptB( na, pkAe, nb2 ) @ #j)
+ ∧
+  ¬(#i = #j)"
+*/
+induction
+  case non_empty_trace
+  solve( (#i < #j)  ∥ (#j < #i) )
+    case case_1
+    solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+      case PKG_gen
+      solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+        case PKG_gen
+        solve( !Ltk( 'A', ~uskA.1 ) ▶₁ #j )
+          case PKG_gen
+          solve( !Ltk( 'B', ~uskB.1 ) ▶₂ #j )
+            case PKG_gen
+            solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.8 )
+              case A_start
+              solve( !KU( ~na ) @ #vk.8 )
+                case A_start
+                solve( !KU( pk(~skAe) ) @ #vk.8 )
+                  case A_start
+                  SOLVED // trace found
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma no_double_accept_plain:
+  all-traces
+  "∀ na pkAe nb1 nb2 #i #j.
+    ((AcceptB( na, pkAe, nb1 ) @ #i) ∧ (AcceptB( na, pkAe, nb2 ) @ #j)) ⇒
+    (#i = #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na pkAe nb1 nb2 #i #j.
+  (AcceptB( na, pkAe, nb1 ) @ #i) ∧ (AcceptB( na, pkAe, nb2 ) @ #j)
+ ∧
+  ¬(#i = #j)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+    case PKG_gen
+    solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+      case PKG_gen
+      solve( !Ltk( 'A', ~uskA.1 ) ▶₁ #j )
+        case PKG_gen
+        solve( !Ltk( 'B', ~uskB.1 ) ▶₂ #j )
+          case PKG_gen
+          solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.8 )
+            case A_start
+            solve( !KU( ~na ) @ #vk.8 )
+              case A_start
+              solve( !KU( pk(~skAe) ) @ #vk.8 )
+                case A_start
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma key_authentication:
+  all-traces
+  "∀ na nb ks #i.
+    (DoneB( na, nb, ks ) @ #i) ⇒
+    (∃ #j. (DoneA( na, nb, ks ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na nb ks #i.
+  (DoneB( na, nb, ks ) @ #i)
+ ∧
+  ∀ #j. (DoneA( na, nb, ks ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( StB( na, pkAe, nb, ss ) ▶₀ #i )
+  case B_accept
+  solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+    case PKG_gen
+    solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+      case PKG_gen
+      solve( !Test( 'B', pB ) ▶₃ #i )
+        case Test_payloads
+        solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.9 )
+          case A_start
+          solve( !KU( macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                     <'Kconf', 
+                                      transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                              sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                              sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB))
+                                     >),
+                            confOf(transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                           sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                           sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)),
+                                   macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                                  <'Kconf', 
+                                                   transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                           aenc(~ss, pk(~skAe)),
+                                                           sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                           sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>,
+                                                                ~uskB))
+                                                  >),
+                                         transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                                 sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                 sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)))))
+                 ) @ #vk.1 )
+            case A_finish
+            by contradiction /* from formulas */
+          next
+            case c_macOf
+            solve( !KU( hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                 <'Kconf', 
+                                  transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                          sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                          sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB))
+                                 >)
+                   ) @ #vk.10 )
+              case c_hkExpand
+              solve( !KU( confOf(transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                         aenc(~ss, pk(~skAe)), sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                         sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)),
+                                 macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                                <'Kconf', 
+                                                 transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                                         sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                         sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>,
+                                                              ~uskB))
+                                                >),
+                                       transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                               sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                               sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB))))
+                     ) @ #vk.11 )
+                case c_confOf
+                solve( !KU( hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss) ) @ #vk.12 )
+                  case c_hkExtract
+                  solve( !KU( ~ss ) @ #vk.18 )
+                    case B_accept
+                    by solve( !KU( ~skAe ) @ #vk.19 )
+                  qed
+                qed
+              qed
+            qed
+          qed
+        next
+          case c_sign
+          by solve( !KU( ~uskA ) @ #vk.13 )
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma key_authentication_inj [use_induction]:
+  all-traces
+  "∀ na nb ks #i.
+    (DoneB( na, nb, ks ) @ #i) ⇒
+    (∃ #j.
+      ((DoneA( na, nb, ks ) @ #j) ∧ (#j < #i)) ∧
+      (¬(∃ #k. (DoneB( na, nb, ks ) @ #k) ∧ (¬(#i = #k)))))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na nb ks #i.
+  (DoneB( na, nb, ks ) @ #i)
+ ∧
+  ∀ #j.
+   (DoneA( na, nb, ks ) @ #j)
+  ⇒
+   ((¬(#j < #i)) ∨ (∃ #k. (DoneB( na, nb, ks ) @ #k) ∧ ¬(#i = #k)))"
+*/
+induction
+  case empty_trace
+  by contradiction /* from formulas */
+next
+  case non_empty_trace
+  solve( (last(#i))  ∥
+         (∃ #j.
+           (DoneA( na, nb,
+                   hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss),
+                            <'Ksess', 
+                             transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                                     sign(<'A', 'B', pkAe, na>, ~uskA),
+                                     sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB))
+                            >)
+            ) @ #j)
+          ∧
+           (¬(last(#j))) ∧
+           (#j < #i) ∧
+           (∀ #k.
+             (DoneB( na, nb,
+                     hkExpand(hkExtract(hkSalt('A', 'B', na, nb), ss),
+                              <'Ksess', 
+                               transOf('A', 'B', na, nb, pkAe, aenc(ss, pkAe),
+                                       sign(<'A', 'B', pkAe, na>, ~uskA),
+                                       sign(<'B', 'A', nb, aenc(ss, pkAe), na>, ~uskB))
+                              >)
+              ) @ #k)
+            ⇒
+             ((last(#k)) ∨ (#i = #k)))) )
+    case case_1
+    solve( StB( na, pkAe, nb, ss ) ▶₀ #i )
+      case B_accept
+      solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+        case PKG_gen
+        solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+          case PKG_gen
+          solve( !Test( 'B', pB ) ▶₃ #i )
+            case Test_payloads
+            solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.9 )
+              case A_start
+              solve( !KU( macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                         <'Kconf', 
+                                          transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                                  sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                  sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB))
+                                         >),
+                                confOf(transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                               sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                               sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)),
+                                       macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                                      <'Kconf', 
+                                                       transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                               aenc(~ss, pk(~skAe)),
+                                                               sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                               sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na
+                                                                    >,
+                                                                    ~uskB))
+                                                      >),
+                                             transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                                     sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                     sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>,
+                                                          ~uskB)))))
+                     ) @ #vk.1 )
+                case A_finish
+                solve( StB( ~na, pk(~skAe), ~nb, ~ss ) ▶₀ #k )
+                  case B_accept
+                  by contradiction /* cyclic */
+                qed
+              next
+                case c_macOf
+                solve( !KU( hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                     <'Kconf', 
+                                      transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                              sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                              sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB))
+                                     >)
+                       ) @ #vk.10 )
+                  case c_hkExpand
+                  solve( !KU( confOf(transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                             aenc(~ss, pk(~skAe)), sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                             sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)),
+                                     macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                                    <'Kconf', 
+                                                     transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                             aenc(~ss, pk(~skAe)),
+                                                             sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                             sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>,
+                                                                  ~uskB))
+                                                    >),
+                                           transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                                   sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                   sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB))))
+                         ) @ #vk.11 )
+                    case c_confOf
+                    solve( !KU( hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss) ) @ #vk.12 )
+                      case c_hkExtract
+                      solve( !KU( ~ss ) @ #vk.18 )
+                        case B_accept
+                        by solve( !KU( ~skAe ) @ #vk.19 )
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            next
+              case c_sign
+              by solve( !KU( ~uskA ) @ #vk.13 )
+            qed
+          qed
+        qed
+      qed
+    qed
+  next
+    case case_2
+    solve( (#i < #k)  ∥ (#k < #i) )
+      case case_1
+      solve( StB( na, pk(skAe), nb, ss ) ▶₀ #i )
+        case B_accept
+        solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+          case PKG_gen
+          solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+            case PKG_gen
+            solve( !Test( 'B', pB ) ▶₃ #i )
+              case Test_payloads
+              solve( StA( na, skAe ) ▶₀ #j )
+                case A_start
+                solve( !Ltk( 'A', ~uskA ) ▶₁ #j )
+                  case PKG_gen
+                  solve( !Ltk( 'B', ~uskB ) ▶₂ #j )
+                    case PKG_gen
+                    solve( !Test( 'A', pA ) ▶₃ #j )
+                      case Test_payloads
+                      solve( StB( ~na, pk(~skAe), ~nb, ~ss ) ▶₀ #k )
+                        case B_accept
+                        by contradiction /* cyclic */
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    next
+      case case_2
+      by contradiction /* from formulas */
+    qed
+  qed
+qed
+
+lemma responder_aliveness:
+  all-traces
+  "∀ na nb ks #i.
+    (DoneA( na, nb, ks ) @ #i) ⇒ (∃ #j pkAe. AcceptB( na, pkAe, nb ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ na nb ks #i.
+  (DoneA( na, nb, ks ) @ #i)
+ ∧
+  ∀ #j pkAe. (AcceptB( na, pkAe, nb ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( StA( na, skAe ) ▶₀ #i )
+  case A_start
+  solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+    case PKG_gen
+    solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+      case PKG_gen
+      solve( !Test( 'A', pA ) ▶₃ #i )
+        case Test_payloads
+        solve( !KU( sign(<'B', 'A', nb, aenc(ss0, pk(~skAe)), ~na>, ~uskB)
+               ) @ #vk.4 )
+          case B_accept
+          by contradiction /* from formulas */
+        next
+          case c_sign
+          by solve( !KU( ~uskB ) @ #vk.9 )
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma handshake_possible:
+  exists-trace
+  "∃ na nb ks #i #j.
+    (DoneA( na, nb, ks ) @ #i) ∧ (DoneB( na, nb, ks ) @ #j)"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ na nb ks #i #j.
+  (DoneA( na, nb, ks ) @ #i) ∧ (DoneB( na, nb, ks ) @ #j)"
+*/
+simplify
+solve( StA( na, skAe ) ▶₀ #i )
+  case A_start
+  solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+    case PKG_gen
+    solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+      case PKG_gen
+      solve( !Test( 'A', pA ) ▶₃ #i )
+        case Test_payloads
+        solve( StB( ~na, pk(~skAe), nb, ss0 ) ▶₀ #j )
+          case B_accept
+          solve( !Ltk( 'A', ~uskA ) ▶₁ #j )
+            case PKG_gen
+            solve( !Ltk( 'B', ~uskB ) ▶₂ #j )
+              case PKG_gen
+              solve( !Test( 'B', pB ) ▶₃ #j )
+                case Test_payloads
+                solve( !KU( ~na ) @ #vk.14 )
+                  case A_start
+                  solve( !KU( ~nb ) @ #vk.2 )
+                    case B_accept
+                    solve( !KU( sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)
+                           ) @ #vk.7 )
+                      case B_accept
+                      solve( !KU( sign(<'A', 'B', pk(~skAe), ~na>, ~uskA) ) @ #vk.15 )
+                        case A_start
+                        solve( !KU( aenc(~ss, pk(~skAe)) ) @ #vk.10 )
+                          case B_accept
+                          solve( !KU( macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                                     <'Kconf', 
+                                                      transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                              aenc(~ss, pk(~skAe)),
+                                                              sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                              sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>,
+                                                                   ~uskB))
+                                                     >),
+                                            transOf('A', 'B', ~na, ~nb, pk(~skAe), aenc(~ss, pk(~skAe)),
+                                                    sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                    sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>, ~uskB)))
+                                 ) @ #vk.11 )
+                            case B_accept
+                            solve( !KU( macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb), ~ss),
+                                                       <'Kconf', 
+                                                        transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                                aenc(~ss, pk(~skAe)),
+                                                                sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                                sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na
+                                                                     >,
+                                                                     ~uskB))
+                                                       >),
+                                              confOf(transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                             aenc(~ss, pk(~skAe)),
+                                                             sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                             sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), ~na>,
+                                                                  ~uskB)),
+                                                     macOf(hkExpand(hkExtract(hkSalt('A', 'B', ~na, ~nb),
+                                                                              ~ss),
+                                                                    <'Kconf', 
+                                                                     transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                                             aenc(~ss, pk(~skAe)),
+                                                                             sign(<'A', 'B', pk(~skAe), ~na>,
+                                                                                  ~uskA),
+                                                                             sign(<'B', 'A', ~nb, 
+                                                                                   aenc(~ss, pk(~skAe)), ~na>,
+                                                                                  ~uskB))
+                                                                    >),
+                                                           transOf('A', 'B', ~na, ~nb, pk(~skAe),
+                                                                   aenc(~ss, pk(~skAe)),
+                                                                   sign(<'A', 'B', pk(~skAe), ~na>, ~uskA),
+                                                                   sign(<'B', 'A', ~nb, aenc(~ss, pk(~skAe)), 
+                                                                         ~na>,
+                                                                        ~uskB)))))
+                                   ) @ #vk.12 )
+                              case A_finish
+                              solve( !KU( pk(~skAe) ) @ #vk.15 )
+                                case A_start
+                                SOLVED // trace found
+                              qed
+                            qed
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                qed
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma replay_trace_exists:
+  exists-trace
+  "∃ na pkAe nb1 nb2 #i #j.
+    ((AcceptB( na, pkAe, nb1 ) @ #i) ∧ (AcceptB( na, pkAe, nb2 ) @ #j)) ∧
+    (¬(#i = #j))"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ na pkAe nb1 nb2 #i #j.
+  (AcceptB( na, pkAe, nb1 ) @ #i) ∧ (AcceptB( na, pkAe, nb2 ) @ #j)
+ ∧
+  ¬(#i = #j)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( !Ltk( 'A', ~uskA ) ▶₁ #i )
+    case PKG_gen
+    solve( !Ltk( 'B', ~uskB ) ▶₂ #i )
+      case PKG_gen
+      solve( !Ltk( 'A', ~uskA.1 ) ▶₁ #j )
+        case PKG_gen
+        solve( !Ltk( 'B', ~uskB.1 ) ▶₂ #j )
+          case PKG_gen
+          solve( !KU( sign(<'A', 'B', pkAe, na>, ~uskA) ) @ #vk.8 )
+            case A_start
+            solve( !KU( ~na ) @ #vk.8 )
+              case A_start
+              solve( !KU( pk(~skAe) ) @ #vk.8 )
+                case A_start
+                SOLVED // trace found
+              qed
+            qed
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma two_ltk_excluded:
+  exists-trace
+  "∃ k1 k2 #i #j.
+    ((LtkGen( 'A', k1 ) @ #i) ∧ (LtkGen( 'A', k2 ) @ #j)) ∧ (¬(#i = #j))"
+/*
+guarded formula characterizing all satisfying traces:
+"∃ k1 k2 #i #j.
+  (LtkGen( 'A', k1 ) @ #i) ∧ (LtkGen( 'A', k2 ) @ #j) ∧ ¬(#i = #j)"
+*/
+simplify
+by contradiction /* from formulas */
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.12.0
+Maude version 3.5.1
+Git revision: 82780bbaf3328a45f624ddb41e51bf75425f851c (with uncommited changes), branch: master
+Compiled at: 2026-03-07 14:22:39.174278293 UTC
+*/
+
+end
+
+==============================================================================
+summary of summaries:
+
+analyzed: model/pqake.spthy
+
+  processing time: 5.89s
+  
+  payload_secrecy (all-traces): verified (12 steps)
+  aliveness (all-traces): verified (6 steps)
+  injective_agreement (all-traces): falsified - found trace (10 steps)
+  no_double_accept (all-traces): falsified - found trace (10 steps)
+  no_double_accept_plain (all-traces): falsified - found trace (10 steps)
+  key_authentication (all-traces): verified (14 steps)
+  key_authentication_inj (all-traces): verified (29 steps)
+  responder_aliveness (all-traces): verified (8 steps)
+  handshake_possible (exists-trace): verified (18 steps)
+  replay_trace_exists (exists-trace): verified (10 steps)
+  two_ltk_excluded (exists-trace): falsified - no trace found (2 steps)
+
+==============================================================================

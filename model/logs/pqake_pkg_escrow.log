@@ -1,0 +1,1200 @@
+Process 0 (that is, the initial process):
+{1}new uskA: skey;
+{2}new uskB: skey;
+{3}let vkA: vkey = ispk(uskA) in
+{4}let vkB: vkey = ispk(uskB) in
+{5}out(c, (vkA,vkB,uskA,uskB));
+(
+    {6}!
+    {7}let uskA_1: skey = uskA in
+    {8}in(c, peer: id);
+    {9}if (peer = B) then
+    {10}new NA: bitstring;
+    {11}new skAe: kemsk;
+    {12}let pkAe: kempk = kemPK(skAe) in
+    {13}let sigA: sig = isig((A,B,pkAe,NA),uskA_1) in
+    {14}event startA(A,B,NA,pkAe);
+    {15}out(c, (A,B,pkAe,NA,sigA));
+    {16}in(c, (NB: bitstring,ct0: kemct,sigB: sig));
+    {17}let (=B,=A,=NB,=ct0,=NA) = iverify(sigB,vkB) in
+    {18}let ss0: ss = kemDecap(ct0,skAe) in
+    {19}let th: bitstring = transcript(A,B,NA,NB,pkAe,ct0,sigA,sigB) in
+    {20}let prk0: key = extract(salt(A,B,NA,NB),ss0) in
+    {21}let kconf: key = hkdfExpand(prk0,(lKconf,th)) in
+    {22}let ksess: key = hkdfExpand(prk0,(lKsess,th)) in
+    {23}in(c, macbWire: bitstring);
+    {24}let macbCheck: bitstring = checkmac(macbWire,kconf) in
+    {25}if (macbCheck = th) then
+    {26}event doneA(A,B,NA,NB,ksess);
+    {27}out(c, (mac(kconf,confdata(th,macbWire)),senc(payloadA,ksess)))
+) | (
+    {28}!
+    {29}let uskB_1: skey = uskB in
+    {30}in(c, (IDA: id,IDB: id,pkAe_1: kempk,NA_1: bitstring,sigA_1: sig));
+    {31}if ((IDB = B) && (IDA = A)) then
+    {32}let (=A,=B,=pkAe_1,=NA_1) = iverify(sigA_1,vkA) in
+    {33}new NB_1: bitstring;
+    {34}new ss0_1: ss;
+    {35}let ct0_1: kemct = kemEncap(ss0_1,pkAe_1) in
+    {36}event acceptB(A,B,NA_1,pkAe_1,NB_1);
+    {37}let sigB_1: sig = isig((B,A,NB_1,ct0_1,NA_1),uskB_1) in
+    {38}out(c, (NB_1,ct0_1,sigB_1));
+    {39}let th_1: bitstring = transcript(A,B,NA_1,NB_1,pkAe_1,ct0_1,sigA_1,sigB_1) in
+    {40}let prk0_1: key = extract(salt(A,B,NA_1,NB_1),ss0_1) in
+    {41}let kconf_1: key = hkdfExpand(prk0_1,(lKconf,th_1)) in
+    {42}let ksess_1: key = hkdfExpand(prk0_1,(lKsess,th_1)) in
+    {43}out(c, mac(kconf_1,th_1));
+    {44}in(c, macaWire: bitstring);
+    {45}let th1: bitstring = checkmac(macaWire,kconf_1) in
+    {46}if (th1 = confdata(th_1,mac(kconf_1,th_1))) then
+    {47}event doneB(A,B,NA_1,NB_1,ksess_1);
+    {48}out(c, senc(payloadB,ksess_1))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new uskA: skey;
+{2}new uskB: skey;
+{4}let vkB: vkey = ispk(uskB) in
+{3}let vkA: vkey = ispk(uskA) in
+{5}out(c, (vkA,vkB,uskA,uskB));
+(
+    {6}!
+    {8}in(c, peer: id);
+    {9}if (peer = B) then
+    {10}new NA: bitstring;
+    {11}new skAe: kemsk;
+    {12}let pkAe: kempk = kemPK(skAe) in
+    {14}event startA(A,B,NA,pkAe);
+    {7}let uskA_1: skey = uskA in
+    {13}let sigA: sig = isig((A,B,pkAe,NA),uskA_1) in
+    {15}out(c, (A,B,pkAe,NA,sigA));
+    {16}in(c, (NB: bitstring,ct0: kemct,sigB: sig));
+    {17}let (=B,=A,=NB,=ct0,=NA) = iverify(sigB,vkB) in
+    {18}let ss0: ss = kemDecap(ct0,skAe) in
+    {23}in(c, macbWire: bitstring);
+    {20}let prk0: key = extract(salt(A,B,NA,NB),ss0) in
+    {19}let th: bitstring = transcript(A,B,NA,NB,pkAe,ct0,sigA,sigB) in
+    {21}let kconf: key = hkdfExpand(prk0,(lKconf,th)) in
+    {24}let macbCheck: bitstring = checkmac(macbWire,kconf) in
+    {25}if (macbCheck = th) then
+    {22}let ksess: key = hkdfExpand(prk0,(lKsess,th)) in
+    {26}event doneA(A,B,NA,NB,ksess);
+    {27}out(c, (mac(kconf,confdata(th,macbWire)),senc(payloadA,ksess)))
+) | (
+    {28}!
+    {30}in(c, (IDA: id,IDB: id,pkAe_1: kempk,NA_1: bitstring,sigA_1: sig));
+    {31}if ((IDB = B) && (IDA = A)) then
+    {32}let (=A,=B,=pkAe_1,=NA_1) = iverify(sigA_1,vkA) in
+    {33}new NB_1: bitstring;
+    {34}new ss0_1: ss;
+    {36}event acceptB(A,B,NA_1,pkAe_1,NB_1);
+    {35}let ct0_1: kemct = kemEncap(ss0_1,pkAe_1) in
+    {29}let uskB_1: skey = uskB in
+    {37}let sigB_1: sig = isig((B,A,NB_1,ct0_1,NA_1),uskB_1) in
+    {38}out(c, (NB_1,ct0_1,sigB_1));
+    {40}let prk0_1: key = extract(salt(A,B,NA_1,NB_1),ss0_1) in
+    {39}let th_1: bitstring = transcript(A,B,NA_1,NB_1,pkAe_1,ct0_1,sigA_1,sigB_1) in
+    {41}let kconf_1: key = hkdfExpand(prk0_1,(lKconf,th_1)) in
+    {43}out(c, mac(kconf_1,th_1));
+    {44}in(c, macaWire: bitstring);
+    {45}let th1: bitstring = checkmac(macaWire,kconf_1) in
+    {46}if (th1 = confdata(th_1,mac(kconf_1,th_1))) then
+    {42}let ksess_1: key = hkdfExpand(prk0_1,(lKsess,th_1)) in
+    {47}event doneB(A,B,NA_1,NB_1,ksess_1);
+    {48}out(c, senc(payloadB,ksess_1))
+)
+
+-- Query 
+   not attacker(payloadA[])
+   not attacker(payloadB[])
+ in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker(payloadA[])
+goal reachable: attacker(payloadA[])
+
+Derivation:
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+
+1. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+2. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 4-proj-4-tuple the attacker may obtain uskB[].
+attacker(uskB[]).
+
+3. The attacker initially knows B[].
+attacker(B[]).
+
+4. The message B[] that the attacker may have by 3 may be received at input {8}.
+So the message (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])) may be sent to the attacker at output {15}.
+attacker((A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]))).
+
+5. By 4, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 4-proj-5-tuple the attacker may obtain NA_2.
+attacker(NA_2).
+
+6. By 4, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 3-proj-5-tuple the attacker may obtain kemPK(skAe_1).
+attacker(kemPK(skAe_1)).
+
+7. The attacker has some term ss0_2.
+attacker(ss0_2).
+
+8. By 7, the attacker may know ss0_2.
+By 6, the attacker may know kemPK(skAe_1).
+Using the function kemEncap the attacker may obtain kemEncap(ss0_2,kemPK(skAe_1)).
+attacker(kemEncap(ss0_2,kemPK(skAe_1))).
+
+9. The attacker has some term NB_2.
+attacker(NB_2).
+
+10. The attacker initially knows A[].
+attacker(A[]).
+
+11. By 3, the attacker may know B[].
+By 10, the attacker may know A[].
+By 9, the attacker may know NB_2.
+By 8, the attacker may know kemEncap(ss0_2,kemPK(skAe_1)).
+By 5, the attacker may know NA_2.
+Using the function 5-tuple the attacker may obtain (B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2).
+attacker((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2)).
+
+12. By 11, the attacker may know (B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2).
+By 2, the attacker may know uskB[].
+Using the function isig the attacker may obtain isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]).
+attacker(isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+
+13. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+14. By 10, the attacker may know A[].
+By 3, the attacker may know B[].
+By 6, the attacker may know kemPK(skAe_1).
+By 5, the attacker may know NA_2.
+Using the function 4-tuple the attacker may obtain (A[],B[],kemPK(skAe_1),NA_2).
+attacker((A[],B[],kemPK(skAe_1),NA_2)).
+
+15. By 14, the attacker may know (A[],B[],kemPK(skAe_1),NA_2).
+By 13, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]).
+attacker(isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+
+16. By 10, the attacker may know A[].
+By 3, the attacker may know B[].
+By 5, the attacker may know NA_2.
+By 9, the attacker may know NB_2.
+By 6, the attacker may know kemPK(skAe_1).
+By 8, the attacker may know kemEncap(ss0_2,kemPK(skAe_1)).
+By 15, the attacker may know isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]).
+By 12, the attacker may know isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]).
+Using the function transcript the attacker may obtain transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+attacker(transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+
+17. Using the function lKsess the attacker may obtain lKsess.
+attacker(lKsess).
+
+18. By 17, the attacker may know lKsess.
+By 16, the attacker may know transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+attacker((lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+
+19. By 10, the attacker may know A[].
+By 3, the attacker may know B[].
+By 5, the attacker may know NA_2.
+By 9, the attacker may know NB_2.
+Using the function salt the attacker may obtain salt(A[],B[],NA_2,NB_2).
+attacker(salt(A[],B[],NA_2,NB_2)).
+
+20. By 19, the attacker may know salt(A[],B[],NA_2,NB_2).
+By 7, the attacker may know ss0_2.
+Using the function extract the attacker may obtain extract(salt(A[],B[],NA_2,NB_2),ss0_2).
+attacker(extract(salt(A[],B[],NA_2,NB_2),ss0_2)).
+
+21. By 20, the attacker may know extract(salt(A[],B[],NA_2,NB_2),ss0_2).
+By 18, the attacker may know (lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))).
+
+22. By 9, the attacker may know NB_2.
+By 8, the attacker may know kemEncap(ss0_2,kemPK(skAe_1)).
+By 12, the attacker may know isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]).
+Using the function 3-tuple the attacker may obtain (NB_2,kemEncap(ss0_2,kemPK(skAe_1)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+attacker((NB_2,kemEncap(ss0_2,kemPK(skAe_1)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+
+23. Using the function lKconf the attacker may obtain lKconf.
+attacker(lKconf).
+
+24. By 23, the attacker may know lKconf.
+By 16, the attacker may know transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+attacker((lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+
+25. By 20, the attacker may know extract(salt(A[],B[],NA_2,NB_2),ss0_2).
+By 24, the attacker may know (lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))).
+
+26. By 25, the attacker may know hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+By 16, the attacker may know transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+Using the function mac the attacker may obtain mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+attacker(mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+
+27. The message B[] that the attacker may have by 3 may be received at input {8}.
+The message (NB_2,kemEncap(ss0_2,kemPK(skAe_1)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])) that the attacker may have by 22 may be received at input {16}.
+The message mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))) that the attacker may have by 26 may be received at input {23}.
+So the message (mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))),senc(payloadA[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))) may be sent to the attacker at output {27}.
+attacker((mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))),senc(payloadA[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))))).
+
+28. By 27, the attacker may know (mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))),senc(payloadA[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))).
+Using the function 2-proj-2-tuple the attacker may obtain senc(payloadA[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))).
+attacker(senc(payloadA[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))).
+
+29. By 28, the attacker may know senc(payloadA[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))).
+By 21, the attacker may know hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+Using the function sdec the attacker may obtain payloadA[].
+attacker(payloadA[]).
+
+30. By 29, attacker(payloadA[]).
+The goal is reached, represented in the following fact:
+attacker(payloadA[]).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, B) at {8} in copy a
+
+new NA: bitstring creating NA_3 at {10} in copy a
+
+new skAe: kemsk creating skAe_2 at {11} in copy a
+
+event startA(A,B,NA_3,kemPK(skAe_2)) at {14} in copy a
+
+out(c, (~M_4,~M_5,~M_6,~M_7,~M_8)) with ~M_4 = A, ~M_5 = B, ~M_6 = kemPK(skAe_2), ~M_7 = NA_3, ~M_8 = isig((A,B,kemPK(skAe_2),NA_3),uskA_2) at {15} in copy a
+
+in(c, (a_1,kemEncap(a_2,~M_6),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3))) with kemEncap(a_2,~M_6) = kemEncap(a_2,kemPK(skAe_2)), isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3) = isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2) at {16} in copy a
+
+in(c, mac(hkdfExpand(extract(salt(A,B,~M_7,a_1),a_2),(lKconf,transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3)))),transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3)))) with mac(hkdfExpand(extract(salt(A,B,~M_7,a_1),a_2),(lKconf,transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3)))),transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3))) = mac(hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKconf,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2)))),transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))) at {23} in copy a
+
+event doneA(A,B,NA_3,a_1,hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKsess,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))))) at {26} in copy a
+
+out(c, (~M_9,~M_10)) with ~M_9 = mac(hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKconf,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2)))),confdata(transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2)),mac(hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKconf,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2)))),transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))))), ~M_10 = senc(payloadA,hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKsess,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))))) at {27} in copy a
+
+The attacker has the message sdec(~M_10,hkdfExpand(extract(salt(A,B,~M_7,a_1),a_2),(lKsess,transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3))))) = payloadA.
+A trace has been found.
+RESULT not attacker(payloadA[]) is false.
+Starting query not attacker(payloadB[])
+goal reachable: attacker(payloadB[])
+
+Derivation:
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(k),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(k),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+
+1. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+2. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 4-proj-4-tuple the attacker may obtain uskB[].
+attacker(uskB[]).
+
+3. The attacker has some term NA_2.
+attacker(NA_2).
+
+4. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+5. The attacker has some term k.
+attacker(k).
+
+6. By 5, the attacker may know k.
+Using the function kemPK the attacker may obtain kemPK(k).
+attacker(kemPK(k)).
+
+7. The attacker initially knows B[].
+attacker(B[]).
+
+8. The attacker initially knows A[].
+attacker(A[]).
+
+9. By 8, the attacker may know A[].
+By 7, the attacker may know B[].
+By 6, the attacker may know kemPK(k).
+By 3, the attacker may know NA_2.
+Using the function 4-tuple the attacker may obtain (A[],B[],kemPK(k),NA_2).
+attacker((A[],B[],kemPK(k),NA_2)).
+
+10. By 9, the attacker may know (A[],B[],kemPK(k),NA_2).
+By 4, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],kemPK(k),NA_2),uskA[]).
+attacker(isig((A[],B[],kemPK(k),NA_2),uskA[])).
+
+11. By 8, the attacker may know A[].
+By 7, the attacker may know B[].
+By 6, the attacker may know kemPK(k).
+By 3, the attacker may know NA_2.
+By 10, the attacker may know isig((A[],B[],kemPK(k),NA_2),uskA[]).
+Using the function 5-tuple the attacker may obtain (A[],B[],kemPK(k),NA_2,isig((A[],B[],kemPK(k),NA_2),uskA[])).
+attacker((A[],B[],kemPK(k),NA_2,isig((A[],B[],kemPK(k),NA_2),uskA[]))).
+
+12. The message (A[],B[],kemPK(k),NA_2,isig((A[],B[],kemPK(k),NA_2),uskA[])) that the attacker may have by 11 may be received at input {30}.
+So the message (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])) may be sent to the attacker at output {38}.
+attacker((NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+
+13. By 12, the attacker may know (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(ss0_2,kemPK(k)).
+attacker(kemEncap(ss0_2,kemPK(k))).
+
+14. By 12, the attacker may know (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+Using the function 1-proj-3-tuple the attacker may obtain NB_2.
+attacker(NB_2).
+
+15. By 7, the attacker may know B[].
+By 8, the attacker may know A[].
+By 14, the attacker may know NB_2.
+By 13, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 3, the attacker may know NA_2.
+Using the function 5-tuple the attacker may obtain (B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2).
+attacker((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2)).
+
+16. By 15, the attacker may know (B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2).
+By 2, the attacker may know uskB[].
+Using the function isig the attacker may obtain isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]).
+attacker(isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+
+17. By 8, the attacker may know A[].
+By 7, the attacker may know B[].
+By 3, the attacker may know NA_2.
+By 14, the attacker may know NB_2.
+By 6, the attacker may know kemPK(k).
+By 13, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 10, the attacker may know isig((A[],B[],kemPK(k),NA_2),uskA[]).
+By 16, the attacker may know isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]).
+Using the function transcript the attacker may obtain transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+attacker(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+
+18. Using the function lKsess the attacker may obtain lKsess.
+attacker(lKsess).
+
+19. By 18, the attacker may know lKsess.
+By 17, the attacker may know transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+attacker((lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+
+20. By 13, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 5, the attacker may know k.
+Using the function kemDecap the attacker may obtain ss0_2.
+attacker(ss0_2).
+
+21. By 8, the attacker may know A[].
+By 7, the attacker may know B[].
+By 3, the attacker may know NA_2.
+By 14, the attacker may know NB_2.
+Using the function salt the attacker may obtain salt(A[],B[],NA_2,NB_2).
+attacker(salt(A[],B[],NA_2,NB_2)).
+
+22. By 21, the attacker may know salt(A[],B[],NA_2,NB_2).
+By 20, the attacker may know ss0_2.
+Using the function extract the attacker may obtain extract(salt(A[],B[],NA_2,NB_2),ss0_2).
+attacker(extract(salt(A[],B[],NA_2,NB_2),ss0_2)).
+
+23. By 22, the attacker may know extract(salt(A[],B[],NA_2,NB_2),ss0_2).
+By 19, the attacker may know (lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))).
+
+24. The message (A[],B[],kemPK(k),NA_2,isig((A[],B[],kemPK(k),NA_2),uskA[])) that the attacker may have by 11 may be received at input {30}.
+So the message mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))) may be sent to the attacker at output {43}.
+attacker(mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+
+25. By 17, the attacker may know transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+By 24, the attacker may know mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+Using the function confdata the attacker may obtain confdata(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+attacker(confdata(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))).
+
+26. Using the function lKconf the attacker may obtain lKconf.
+attacker(lKconf).
+
+27. By 26, the attacker may know lKconf.
+By 17, the attacker may know transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+attacker((lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+
+28. By 22, the attacker may know extract(salt(A[],B[],NA_2,NB_2),ss0_2).
+By 27, the attacker may know (lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))).
+
+29. By 28, the attacker may know hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+By 25, the attacker may know confdata(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+Using the function mac the attacker may obtain mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))).
+attacker(mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))))).
+
+30. The message (A[],B[],kemPK(k),NA_2,isig((A[],B[],kemPK(k),NA_2),uskA[])) that the attacker may have by 11 may be received at input {30}.
+The message mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))) that the attacker may have by 29 may be received at input {44}.
+So the message senc(payloadB[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))) may be sent to the attacker at output {48}.
+attacker(senc(payloadB[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))))).
+
+31. By 30, the attacker may know senc(payloadB[],hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[]))))).
+By 23, the attacker may know hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),NA_2),uskB[])))).
+Using the function sdec the attacker may obtain payloadB[].
+attacker(payloadB[]).
+
+32. By 31, attacker(payloadB[]).
+The goal is reached, represented in the following fact:
+attacker(payloadB[]).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, (A,B,kemPK(a),a_1,isig((A,B,kemPK(a),a_1),~M_2))) with isig((A,B,kemPK(a),a_1),~M_2) = isig((A,B,kemPK(a),a_1),uskA_2) at {30} in copy a_2
+
+new NB_1: bitstring creating NB_3 at {33} in copy a_2
+
+new ss0_1: ss creating ss0_3 at {34} in copy a_2
+
+event acceptB(A,B,a_1,kemPK(a),NB_3) at {36} in copy a_2
+
+out(c, (~M_4,~M_5,~M_6)) with ~M_4 = NB_3, ~M_5 = kemEncap(ss0_3,kemPK(a)), ~M_6 = isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2) at {38} in copy a_2
+
+out(c, ~M_7) with ~M_7 = mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))) at {43} in copy a_2
+
+in(c, mac(hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKconf,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)))),confdata(transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)),~M_7))) with mac(hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKconf,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)))),confdata(transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)),~M_7)) = mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),confdata(transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)),mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {44} in copy a_2
+
+event doneB(A,B,a_1,NB_3,hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKsess,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {47} in copy a_2
+
+out(c, ~M_8) with ~M_8 = senc(payloadB,hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKsess,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {48} in copy a_2
+
+The attacker has the message sdec(~M_8,hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKsess,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3))))) = payloadB.
+A trace has been found.
+RESULT not attacker(payloadB[]) is false.
+-- Query event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka))
+goal reachable: attacker(pka) && attacker(na) -> event(acceptB(A[],B[],na,pka,NB_2))
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],pka,na),uskA[]),NA_1 = na,pkAe_1 = pka,IDB = B[],IDA = A[],!1 = @sid]
+
+Derivation:
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],pka,na),uskA[]),NA_1 = na,pkAe_1 = pka,IDB = B[],IDA = A[],!1 = @sid]
+
+1. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+2. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+3. We assume as hypothesis that
+attacker(na).
+
+4. We assume as hypothesis that
+attacker(pka).
+
+5. The attacker initially knows B[].
+attacker(B[]).
+
+6. The attacker initially knows A[].
+attacker(A[]).
+
+7. By 6, the attacker may know A[].
+By 5, the attacker may know B[].
+By 4, the attacker may know pka.
+By 3, the attacker may know na.
+Using the function 4-tuple the attacker may obtain (A[],B[],pka,na).
+attacker((A[],B[],pka,na)).
+
+8. By 7, the attacker may know (A[],B[],pka,na).
+By 2, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],pka,na),uskA[]).
+attacker(isig((A[],B[],pka,na),uskA[])).
+
+9. By 6, the attacker may know A[].
+By 5, the attacker may know B[].
+By 4, the attacker may know pka.
+By 3, the attacker may know na.
+By 8, the attacker may know isig((A[],B[],pka,na),uskA[]).
+Using the function 5-tuple the attacker may obtain (A[],B[],pka,na,isig((A[],B[],pka,na),uskA[])).
+attacker((A[],B[],pka,na,isig((A[],B[],pka,na),uskA[]))).
+
+10. The message (A[],B[],pka,na,isig((A[],B[],pka,na),uskA[])) that the attacker may have by 9 may be received at input {30}.
+So event acceptB(A[],B[],na,pka,NB_2) may be executed at {36}.
+event(acceptB(A[],B[],na,pka,NB_2)).
+
+11. By 10, event(acceptB(A[],B[],na,pka,NB_2)).
+The goal is reached, represented in the following fact:
+event(acceptB(A[],B[],na,pka,NB_2)).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, (A,B,a,a_1,isig((A,B,a,a_1),~M_2))) with isig((A,B,a,a_1),~M_2) = isig((A,B,a,a_1),uskA_2) at {30} in copy a_2
+
+new NB_1: bitstring creating NB_3 at {33} in copy a_2
+
+new ss0_1: ss creating ss0_2 at {34} in copy a_2
+
+event acceptB(A,B,a_1,a,NB_3) at {36} in copy a_2 (goal)
+
+The event acceptB(A,B,a_1,a,NB_3) is executed at {36} in copy a_2.
+A trace has been found.
+RESULT event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) is false.
+-- Query inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka))
+goal reachable: attacker(pka) && attacker(na) -> inj-event(acceptB(A[],B[],na,pka,NB_2),@occ36_1)
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],pka,na),uskA[]),NA_1 = na,pkAe_1 = pka,IDB = B[],IDA = A[],!1 = @sid]
+@occ36_1 = @occ36[sigA_1 = isig((A[],B[],pka,na),uskA[]),NA_1 = na,pkAe_1 = pka,IDB = B[],IDA = A[],!1 = @sid]
+
+Derivation:
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],pka,na),uskA[]),NA_1 = na,pkAe_1 = pka,IDB = B[],IDA = A[],!1 = @sid]
+@occ36_1 = @occ36[sigA_1 = isig((A[],B[],pka,na),uskA[]),NA_1 = na,pkAe_1 = pka,IDB = B[],IDA = A[],!1 = @sid]
+
+1. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+2. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+3. We assume as hypothesis that
+attacker(na).
+
+4. We assume as hypothesis that
+attacker(pka).
+
+5. The attacker initially knows B[].
+attacker(B[]).
+
+6. The attacker initially knows A[].
+attacker(A[]).
+
+7. By 6, the attacker may know A[].
+By 5, the attacker may know B[].
+By 4, the attacker may know pka.
+By 3, the attacker may know na.
+Using the function 4-tuple the attacker may obtain (A[],B[],pka,na).
+attacker((A[],B[],pka,na)).
+
+8. By 7, the attacker may know (A[],B[],pka,na).
+By 2, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],pka,na),uskA[]).
+attacker(isig((A[],B[],pka,na),uskA[])).
+
+9. By 6, the attacker may know A[].
+By 5, the attacker may know B[].
+By 4, the attacker may know pka.
+By 3, the attacker may know na.
+By 8, the attacker may know isig((A[],B[],pka,na),uskA[]).
+Using the function 5-tuple the attacker may obtain (A[],B[],pka,na,isig((A[],B[],pka,na),uskA[])).
+attacker((A[],B[],pka,na,isig((A[],B[],pka,na),uskA[]))).
+
+10. The message (A[],B[],pka,na,isig((A[],B[],pka,na),uskA[])) that the attacker may have by 9 may be received at input {30}.
+So event acceptB(A[],B[],na,pka,NB_2) may be executed at {36} in session @sid.
+inj-event(acceptB(A[],B[],na,pka,NB_2),@occ36_1).
+
+11. By 10, inj-event(acceptB(A[],B[],na,pka,NB_2),@occ36_1).
+The goal is reached, represented in the following fact:
+inj-event(acceptB(A[],B[],na,pka,NB_2),@occ36_1).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, (A,B,a,a_1,isig((A,B,a,a_1),~M_2))) with isig((A,B,a,a_1),~M_2) = isig((A,B,a,a_1),uskA_2) at {30} in copy a_2
+
+new NB_1: bitstring creating NB_3 at {33} in copy a_2
+
+new ss0_1: ss creating ss0_2 at {34} in copy a_2
+
+event acceptB(A,B,a_1,a,NB_3) at {36} in copy a_2 (goal)
+
+The event acceptB(A,B,a_1,a,NB_3) is executed at {36} in copy a_2.
+A trace has been found.
+RESULT inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka)) is false.
+RESULT (even event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) is false.)
+-- Query event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 113 rules (45 with conclusion selected). Queue: 3 rules.
+Starting query event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks))
+goal reachable: attacker(k) && attacker(na) -> event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))))
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+
+Derivation:
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+
+1. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+2. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+3. We assume as hypothesis that
+attacker(na).
+
+4. We assume as hypothesis that
+attacker(k).
+
+5. By 4, the attacker may know k.
+Using the function kemPK the attacker may obtain kemPK(k).
+attacker(kemPK(k)).
+
+6. The attacker initially knows B[].
+attacker(B[]).
+
+7. The attacker initially knows A[].
+attacker(A[]).
+
+8. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 5, the attacker may know kemPK(k).
+By 3, the attacker may know na.
+Using the function 4-tuple the attacker may obtain (A[],B[],kemPK(k),na).
+attacker((A[],B[],kemPK(k),na)).
+
+9. By 8, the attacker may know (A[],B[],kemPK(k),na).
+By 2, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],kemPK(k),na),uskA[]).
+attacker(isig((A[],B[],kemPK(k),na),uskA[])).
+
+10. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 5, the attacker may know kemPK(k).
+By 3, the attacker may know na.
+By 9, the attacker may know isig((A[],B[],kemPK(k),na),uskA[]).
+Using the function 5-tuple the attacker may obtain (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])).
+attacker((A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[]))).
+
+11. The message (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])) that the attacker may have by 10 may be received at input {30}.
+So the message mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))) may be sent to the attacker at output {43}.
+attacker(mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+
+12. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 4-proj-4-tuple the attacker may obtain uskB[].
+attacker(uskB[]).
+
+13. The message (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])) that the attacker may have by 10 may be received at input {30}.
+So the message (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])) may be sent to the attacker at output {38}.
+attacker((NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+
+14. By 13, the attacker may know (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(ss0_2,kemPK(k)).
+attacker(kemEncap(ss0_2,kemPK(k))).
+
+15. By 13, the attacker may know (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+Using the function 1-proj-3-tuple the attacker may obtain NB_2.
+attacker(NB_2).
+
+16. By 6, the attacker may know B[].
+By 7, the attacker may know A[].
+By 15, the attacker may know NB_2.
+By 14, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 3, the attacker may know na.
+Using the function 5-tuple the attacker may obtain (B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na).
+attacker((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na)).
+
+17. By 16, the attacker may know (B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na).
+By 12, the attacker may know uskB[].
+Using the function isig the attacker may obtain isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]).
+attacker(isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+
+18. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 3, the attacker may know na.
+By 15, the attacker may know NB_2.
+By 5, the attacker may know kemPK(k).
+By 14, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 9, the attacker may know isig((A[],B[],kemPK(k),na),uskA[]).
+By 17, the attacker may know isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]).
+Using the function transcript the attacker may obtain transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+attacker(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+
+19. By 18, the attacker may know transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+By 11, the attacker may know mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+Using the function confdata the attacker may obtain confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+attacker(confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))).
+
+20. Using the function lKconf the attacker may obtain lKconf.
+attacker(lKconf).
+
+21. By 20, the attacker may know lKconf.
+By 18, the attacker may know transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+attacker((lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+
+22. By 14, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 4, the attacker may know k.
+Using the function kemDecap the attacker may obtain ss0_2.
+attacker(ss0_2).
+
+23. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 3, the attacker may know na.
+By 15, the attacker may know NB_2.
+Using the function salt the attacker may obtain salt(A[],B[],na,NB_2).
+attacker(salt(A[],B[],na,NB_2)).
+
+24. By 23, the attacker may know salt(A[],B[],na,NB_2).
+By 22, the attacker may know ss0_2.
+Using the function extract the attacker may obtain extract(salt(A[],B[],na,NB_2),ss0_2).
+attacker(extract(salt(A[],B[],na,NB_2),ss0_2)).
+
+25. By 24, the attacker may know extract(salt(A[],B[],na,NB_2),ss0_2).
+By 21, the attacker may know (lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))).
+
+26. By 25, the attacker may know hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+By 19, the attacker may know confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+Using the function mac the attacker may obtain mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))).
+attacker(mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))))).
+
+27. The message (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])) that the attacker may have by 10 may be received at input {30}.
+The message mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))) that the attacker may have by 26 may be received at input {44}.
+So event doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))) may be executed at {47}.
+event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))))).
+
+28. By 27, event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))))).
+The goal is reached, represented in the following fact:
+event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, (A,B,kemPK(a),a_1,isig((A,B,kemPK(a),a_1),~M_2))) with isig((A,B,kemPK(a),a_1),~M_2) = isig((A,B,kemPK(a),a_1),uskA_2) at {30} in copy a_2
+
+new NB_1: bitstring creating NB_3 at {33} in copy a_2
+
+new ss0_1: ss creating ss0_3 at {34} in copy a_2
+
+event acceptB(A,B,a_1,kemPK(a),NB_3) at {36} in copy a_2
+
+out(c, (~M_4,~M_5,~M_6)) with ~M_4 = NB_3, ~M_5 = kemEncap(ss0_3,kemPK(a)), ~M_6 = isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2) at {38} in copy a_2
+
+out(c, ~M_7) with ~M_7 = mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))) at {43} in copy a_2
+
+in(c, mac(hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKconf,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)))),confdata(transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)),~M_7))) with mac(hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKconf,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)))),confdata(transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)),~M_7)) = mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),confdata(transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)),mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {44} in copy a_2
+
+event doneB(A,B,a_1,NB_3,hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKsess,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {47} in copy a_2 (goal)
+
+The event doneB(A,B,a_1,NB_3,hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKsess,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) is executed at {47} in copy a_2.
+A trace has been found.
+RESULT event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) is false.
+-- Query inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 113 rules (45 with conclusion selected). Queue: 3 rules.
+Starting query inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks))
+goal reachable: attacker(k) && attacker(na) -> inj-event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))),@occ47_1)
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+@occ47_1 = @occ47[macaWire = mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))),sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+
+Derivation:
+Abbreviations:
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+@occ47_1 = @occ47[macaWire = mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))),sigA_1 = isig((A[],B[],kemPK(k),na),uskA[]),NA_1 = na,pkAe_1 = kemPK(k),IDB = B[],IDA = A[],!1 = @sid]
+
+1. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+2. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+3. We assume as hypothesis that
+attacker(na).
+
+4. We assume as hypothesis that
+attacker(k).
+
+5. By 4, the attacker may know k.
+Using the function kemPK the attacker may obtain kemPK(k).
+attacker(kemPK(k)).
+
+6. The attacker initially knows B[].
+attacker(B[]).
+
+7. The attacker initially knows A[].
+attacker(A[]).
+
+8. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 5, the attacker may know kemPK(k).
+By 3, the attacker may know na.
+Using the function 4-tuple the attacker may obtain (A[],B[],kemPK(k),na).
+attacker((A[],B[],kemPK(k),na)).
+
+9. By 8, the attacker may know (A[],B[],kemPK(k),na).
+By 2, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],kemPK(k),na),uskA[]).
+attacker(isig((A[],B[],kemPK(k),na),uskA[])).
+
+10. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 5, the attacker may know kemPK(k).
+By 3, the attacker may know na.
+By 9, the attacker may know isig((A[],B[],kemPK(k),na),uskA[]).
+Using the function 5-tuple the attacker may obtain (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])).
+attacker((A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[]))).
+
+11. The message (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])) that the attacker may have by 10 may be received at input {30}.
+So the message mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))) may be sent to the attacker at output {43}.
+attacker(mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+
+12. By 1, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 4-proj-4-tuple the attacker may obtain uskB[].
+attacker(uskB[]).
+
+13. The message (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])) that the attacker may have by 10 may be received at input {30}.
+So the message (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])) may be sent to the attacker at output {38}.
+attacker((NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+
+14. By 13, the attacker may know (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(ss0_2,kemPK(k)).
+attacker(kemEncap(ss0_2,kemPK(k))).
+
+15. By 13, the attacker may know (NB_2,kemEncap(ss0_2,kemPK(k)),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+Using the function 1-proj-3-tuple the attacker may obtain NB_2.
+attacker(NB_2).
+
+16. By 6, the attacker may know B[].
+By 7, the attacker may know A[].
+By 15, the attacker may know NB_2.
+By 14, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 3, the attacker may know na.
+Using the function 5-tuple the attacker may obtain (B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na).
+attacker((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na)).
+
+17. By 16, the attacker may know (B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na).
+By 12, the attacker may know uskB[].
+Using the function isig the attacker may obtain isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]).
+attacker(isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+
+18. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 3, the attacker may know na.
+By 15, the attacker may know NB_2.
+By 5, the attacker may know kemPK(k).
+By 14, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 9, the attacker may know isig((A[],B[],kemPK(k),na),uskA[]).
+By 17, the attacker may know isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]).
+Using the function transcript the attacker may obtain transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+attacker(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+
+19. By 18, the attacker may know transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+By 11, the attacker may know mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+Using the function confdata the attacker may obtain confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+attacker(confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))).
+
+20. Using the function lKconf the attacker may obtain lKconf.
+attacker(lKconf).
+
+21. By 20, the attacker may know lKconf.
+By 18, the attacker may know transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+attacker((lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+
+22. By 14, the attacker may know kemEncap(ss0_2,kemPK(k)).
+By 4, the attacker may know k.
+Using the function kemDecap the attacker may obtain ss0_2.
+attacker(ss0_2).
+
+23. By 7, the attacker may know A[].
+By 6, the attacker may know B[].
+By 3, the attacker may know na.
+By 15, the attacker may know NB_2.
+Using the function salt the attacker may obtain salt(A[],B[],na,NB_2).
+attacker(salt(A[],B[],na,NB_2)).
+
+24. By 23, the attacker may know salt(A[],B[],na,NB_2).
+By 22, the attacker may know ss0_2.
+Using the function extract the attacker may obtain extract(salt(A[],B[],na,NB_2),ss0_2).
+attacker(extract(salt(A[],B[],na,NB_2),ss0_2)).
+
+25. By 24, the attacker may know extract(salt(A[],B[],na,NB_2),ss0_2).
+By 21, the attacker may know (lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))).
+
+26. By 25, the attacker may know hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+By 19, the attacker may know confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))).
+Using the function mac the attacker may obtain mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))).
+attacker(mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))))).
+
+27. The message (A[],B[],kemPK(k),na,isig((A[],B[],kemPK(k),na),uskA[])) that the attacker may have by 10 may be received at input {30}.
+The message mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),confdata(transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKconf,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[])))),transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))) that the attacker may have by 26 may be received at input {44}.
+So event doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))) may be executed at {47} in session @sid.
+inj-event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))),@occ47_1).
+
+28. By 27, inj-event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))),@occ47_1).
+The goal is reached, represented in the following fact:
+inj-event(doneB(A[],B[],na,NB_2,hkdfExpand(extract(salt(A[],B[],na,NB_2),ss0_2),(lKsess,transcript(A[],B[],na,NB_2,kemPK(k),kemEncap(ss0_2,kemPK(k)),isig((A[],B[],kemPK(k),na),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(k)),na),uskB[]))))),@occ47_1).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, (A,B,kemPK(a),a_1,isig((A,B,kemPK(a),a_1),~M_2))) with isig((A,B,kemPK(a),a_1),~M_2) = isig((A,B,kemPK(a),a_1),uskA_2) at {30} in copy a_2
+
+new NB_1: bitstring creating NB_3 at {33} in copy a_2
+
+new ss0_1: ss creating ss0_3 at {34} in copy a_2
+
+event acceptB(A,B,a_1,kemPK(a),NB_3) at {36} in copy a_2
+
+out(c, (~M_4,~M_5,~M_6)) with ~M_4 = NB_3, ~M_5 = kemEncap(ss0_3,kemPK(a)), ~M_6 = isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2) at {38} in copy a_2
+
+out(c, ~M_7) with ~M_7 = mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))) at {43} in copy a_2
+
+in(c, mac(hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKconf,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)))),confdata(transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)),~M_7))) with mac(hkdfExpand(extract(salt(A,B,a_1,~M_4),kemDecap(~M_5,a)),(lKconf,transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)))),confdata(transcript(A,B,a_1,~M_4,kemPK(a),~M_5,isig((A,B,kemPK(a),a_1),~M_2),isig((B,A,~M_4,~M_5,a_1),~M_3)),~M_7)) = mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),confdata(transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)),mac(hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKconf,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2)))),transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {44} in copy a_2
+
+event doneB(A,B,a_1,NB_3,hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKsess,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) at {47} in copy a_2 (goal)
+
+The event doneB(A,B,a_1,NB_3,hkdfExpand(extract(salt(A,B,a_1,NB_3),ss0_3),(lKsess,transcript(A,B,a_1,NB_3,kemPK(a),kemEncap(ss0_3,kemPK(a)),isig((A,B,kemPK(a),a_1),uskA_2),isig((B,A,NB_3,kemEncap(ss0_3,kemPK(a)),a_1),uskB_2))))) is executed at {47} in copy a_2.
+A trace has been found.
+RESULT inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks)) is false.
+RESULT (even event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) is false.)
+-- Query event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 107 rules (46 with conclusion selected). Queue: 2 rules.
+Starting query event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb))
+goal reachable: attacker(nb) && attacker(ss0_2) -> event(doneA(A[],B[],NA_2,nb,hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKsess,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))))
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+
+Derivation:
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+
+1. The attacker initially knows B[].
+attacker(B[]).
+
+2. The message (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]) may be sent to the attacker at output {5}.
+attacker((ispk(uskA[]),ispk(uskB[]),uskA[],uskB[])).
+
+3. By 2, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 4-proj-4-tuple the attacker may obtain uskB[].
+attacker(uskB[]).
+
+4. The message B[] that the attacker may have by 1 may be received at input {8}.
+So the message (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])) may be sent to the attacker at output {15}.
+attacker((A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]))).
+
+5. By 4, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 4-proj-5-tuple the attacker may obtain NA_2.
+attacker(NA_2).
+
+6. By 4, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 3-proj-5-tuple the attacker may obtain kemPK(skAe_1).
+attacker(kemPK(skAe_1)).
+
+7. We assume as hypothesis that
+attacker(ss0_2).
+
+8. By 7, the attacker may know ss0_2.
+By 6, the attacker may know kemPK(skAe_1).
+Using the function kemEncap the attacker may obtain kemEncap(ss0_2,kemPK(skAe_1)).
+attacker(kemEncap(ss0_2,kemPK(skAe_1))).
+
+9. We assume as hypothesis that
+attacker(nb).
+
+10. The attacker initially knows A[].
+attacker(A[]).
+
+11. By 1, the attacker may know B[].
+By 10, the attacker may know A[].
+By 9, the attacker may know nb.
+By 8, the attacker may know kemEncap(ss0_2,kemPK(skAe_1)).
+By 5, the attacker may know NA_2.
+Using the function 5-tuple the attacker may obtain (B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2).
+attacker((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2)).
+
+12. By 11, the attacker may know (B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2).
+By 3, the attacker may know uskB[].
+Using the function isig the attacker may obtain isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]).
+attacker(isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+
+13. By 9, the attacker may know nb.
+By 8, the attacker may know kemEncap(ss0_2,kemPK(skAe_1)).
+By 12, the attacker may know isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]).
+Using the function 3-tuple the attacker may obtain (nb,kemEncap(ss0_2,kemPK(skAe_1)),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+attacker((nb,kemEncap(ss0_2,kemPK(skAe_1)),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+
+14. By 2, the attacker may know (ispk(uskA[]),ispk(uskB[]),uskA[],uskB[]).
+Using the function 3-proj-4-tuple the attacker may obtain uskA[].
+attacker(uskA[]).
+
+15. By 10, the attacker may know A[].
+By 1, the attacker may know B[].
+By 6, the attacker may know kemPK(skAe_1).
+By 5, the attacker may know NA_2.
+Using the function 4-tuple the attacker may obtain (A[],B[],kemPK(skAe_1),NA_2).
+attacker((A[],B[],kemPK(skAe_1),NA_2)).
+
+16. By 15, the attacker may know (A[],B[],kemPK(skAe_1),NA_2).
+By 14, the attacker may know uskA[].
+Using the function isig the attacker may obtain isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]).
+attacker(isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+
+17. By 10, the attacker may know A[].
+By 1, the attacker may know B[].
+By 5, the attacker may know NA_2.
+By 9, the attacker may know nb.
+By 6, the attacker may know kemPK(skAe_1).
+By 8, the attacker may know kemEncap(ss0_2,kemPK(skAe_1)).
+By 16, the attacker may know isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]).
+By 12, the attacker may know isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]).
+Using the function transcript the attacker may obtain transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+attacker(transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+
+18. Using the function lKconf the attacker may obtain lKconf.
+attacker(lKconf).
+
+19. By 18, the attacker may know lKconf.
+By 17, the attacker may know transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+Using the function 2-tuple the attacker may obtain (lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+attacker((lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+
+20. By 10, the attacker may know A[].
+By 1, the attacker may know B[].
+By 5, the attacker may know NA_2.
+By 9, the attacker may know nb.
+Using the function salt the attacker may obtain salt(A[],B[],NA_2,nb).
+attacker(salt(A[],B[],NA_2,nb)).
+
+21. By 20, the attacker may know salt(A[],B[],NA_2,nb).
+By 7, the attacker may know ss0_2.
+Using the function extract the attacker may obtain extract(salt(A[],B[],NA_2,nb),ss0_2).
+attacker(extract(salt(A[],B[],NA_2,nb),ss0_2)).
+
+22. By 21, the attacker may know extract(salt(A[],B[],NA_2,nb),ss0_2).
+By 19, the attacker may know (lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+Using the function hkdfExpand the attacker may obtain hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+attacker(hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))).
+
+23. By 22, the attacker may know hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+By 17, the attacker may know transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])).
+Using the function mac the attacker may obtain mac(hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))).
+attacker(mac(hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))).
+
+24. The message B[] that the attacker may have by 1 may be received at input {8}.
+The message (nb,kemEncap(ss0_2,kemPK(skAe_1)),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])) that the attacker may have by 13 may be received at input {16}.
+The message mac(hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKconf,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))) that the attacker may have by 23 may be received at input {23}.
+So event doneA(A[],B[],NA_2,nb,hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKsess,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))) may be executed at {26}.
+event(doneA(A[],B[],NA_2,nb,hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKsess,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))).
+
+25. By 24, event(doneA(A[],B[],NA_2,nb,hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKsess,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))).
+The goal is reached, represented in the following fact:
+event(doneA(A[],B[],NA_2,nb,hkdfExpand(extract(salt(A[],B[],NA_2,nb),ss0_2),(lKsess,transcript(A[],B[],NA_2,nb,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],nb,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2), ~M_2 = uskA_2, ~M_3 = uskB_2 at {5}
+
+in(c, B) at {8} in copy a
+
+new NA: bitstring creating NA_3 at {10} in copy a
+
+new skAe: kemsk creating skAe_2 at {11} in copy a
+
+event startA(A,B,NA_3,kemPK(skAe_2)) at {14} in copy a
+
+out(c, (~M_4,~M_5,~M_6,~M_7,~M_8)) with ~M_4 = A, ~M_5 = B, ~M_6 = kemPK(skAe_2), ~M_7 = NA_3, ~M_8 = isig((A,B,kemPK(skAe_2),NA_3),uskA_2) at {15} in copy a
+
+in(c, (a_1,kemEncap(a_2,~M_6),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3))) with kemEncap(a_2,~M_6) = kemEncap(a_2,kemPK(skAe_2)), isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3) = isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2) at {16} in copy a
+
+in(c, mac(hkdfExpand(extract(salt(A,B,~M_7,a_1),a_2),(lKconf,transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3)))),transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3)))) with mac(hkdfExpand(extract(salt(A,B,~M_7,a_1),a_2),(lKconf,transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3)))),transcript(A,B,~M_7,a_1,~M_6,kemEncap(a_2,~M_6),isig((A,B,~M_6,~M_7),~M_2),isig((B,A,a_1,kemEncap(a_2,~M_6),~M_7),~M_3))) = mac(hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKconf,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2)))),transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))) at {23} in copy a
+
+event doneA(A,B,NA_3,a_1,hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKsess,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))))) at {26} in copy a (goal)
+
+The event doneA(A,B,NA_3,a_1,hkdfExpand(extract(salt(A,B,NA_3,a_1),a_2),(lKsess,transcript(A,B,NA_3,a_1,kemPK(skAe_2),kemEncap(a_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,a_1,kemEncap(a_2,kemPK(skAe_2)),NA_3),uskB_2))))) is executed at {26} in copy a.
+A trace has been found.
+RESULT event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb)) is false.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker(payloadA[]) is false.
+
+Query not attacker(payloadB[]) is false.
+
+Query event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) is false.
+
+Query inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka)) is false.
+
+Query event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) is false.
+
+Query inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks)) is false.
+
+Query event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb)) is false.
+
+--------------------------------------------------------------
+

@@ -1,0 +1,304 @@
+Process 0 (that is, the initial process):
+{1}new uskA: skey;
+{2}new uskB: skey;
+{3}let vkA: vkey = ispk(uskA) in
+{4}let vkB: vkey = ispk(uskB) in
+{5}out(c, (vkA,vkB));
+(
+    {6}!
+    {7}let uskA_1: skey = uskA in
+    {8}in(c, peer: id);
+    {9}if (peer = B) then
+    {10}new NA: bitstring;
+    {11}new skAe: kemsk;
+    {12}let pkAe: kempk = kemPK(skAe) in
+    {13}let sigA: sig = isig((A,B,pkAe,NA),uskA_1) in
+    {14}event startA(A,B,NA,pkAe);
+    {15}out(c, (A,B,pkAe,NA,sigA));
+    {16}in(c, (NB: bitstring,ct0: kemct,sigB: sig));
+    {17}let (=B,=A,=NB,=ct0,=NA) = iverify(sigB,vkB) in
+    {18}let ss0: ss = kemDecap(ct0,skAe) in
+    {19}let th: bitstring = transcript(A,B,NA,NB,pkAe,ct0,sigA,sigB) in
+    {20}let prk0: key = extract(salt(A,B,NA,NB),ss0) in
+    {21}let kconf: key = hkdfExpand(prk0,(lKconf,th)) in
+    {22}let ksess: key = hkdfExpand(prk0,(lKsess,th)) in
+    {23}in(c, macbWire: bitstring);
+    {24}let macbCheck: bitstring = checkmac(macbWire,kconf) in
+    {25}if (macbCheck = th) then
+    {26}event doneA(A,B,NA,NB,ksess);
+    {27}out(c, (mac(kconf,confdata(th,macbWire)),senc(payloadA,ksess)))
+) | (
+    {28}!
+    {29}let uskB_1: skey = uskB in
+    {30}in(c, (IDA: id,IDB: id,pkAe_1: kempk,NA_1: bitstring,sigA_1: sig));
+    {31}if ((IDB = B) && (IDA = A)) then
+    {32}let (=A,=B,=pkAe_1,=NA_1) = iverify(sigA_1,vkA) in
+    {33}new NB_1: bitstring;
+    {34}new ss0_1: ss;
+    {35}let ct0_1: kemct = kemEncap(ss0_1,pkAe_1) in
+    {36}event acceptB(A,B,NA_1,pkAe_1,NB_1);
+    {37}let sigB_1: sig = isig((B,A,NB_1,ct0_1,NA_1),uskB_1) in
+    {38}out(c, (NB_1,ct0_1,sigB_1));
+    {39}let th_1: bitstring = transcript(A,B,NA_1,NB_1,pkAe_1,ct0_1,sigA_1,sigB_1) in
+    {40}let prk0_1: key = extract(salt(A,B,NA_1,NB_1),ss0_1) in
+    {41}let kconf_1: key = hkdfExpand(prk0_1,(lKconf,th_1)) in
+    {42}let ksess_1: key = hkdfExpand(prk0_1,(lKsess,th_1)) in
+    {43}out(c, mac(kconf_1,th_1));
+    {44}in(c, macaWire: bitstring);
+    {45}let th1: bitstring = checkmac(macaWire,kconf_1) in
+    {46}if (th1 = confdata(th_1,mac(kconf_1,th_1))) then
+    {47}event doneB(A,B,NA_1,NB_1,ksess_1);
+    {48}out(c, senc(payloadB,ksess_1))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new uskA: skey;
+{2}new uskB: skey;
+{4}let vkB: vkey = ispk(uskB) in
+{3}let vkA: vkey = ispk(uskA) in
+{5}out(c, (vkA,vkB));
+(
+    {6}!
+    {8}in(c, peer: id);
+    {9}if (peer = B) then
+    {10}new NA: bitstring;
+    {11}new skAe: kemsk;
+    {12}let pkAe: kempk = kemPK(skAe) in
+    {14}event startA(A,B,NA,pkAe);
+    {7}let uskA_1: skey = uskA in
+    {13}let sigA: sig = isig((A,B,pkAe,NA),uskA_1) in
+    {15}out(c, (A,B,pkAe,NA,sigA));
+    {16}in(c, (NB: bitstring,ct0: kemct,sigB: sig));
+    {17}let (=B,=A,=NB,=ct0,=NA) = iverify(sigB,vkB) in
+    {18}let ss0: ss = kemDecap(ct0,skAe) in
+    {23}in(c, macbWire: bitstring);
+    {20}let prk0: key = extract(salt(A,B,NA,NB),ss0) in
+    {19}let th: bitstring = transcript(A,B,NA,NB,pkAe,ct0,sigA,sigB) in
+    {21}let kconf: key = hkdfExpand(prk0,(lKconf,th)) in
+    {24}let macbCheck: bitstring = checkmac(macbWire,kconf) in
+    {25}if (macbCheck = th) then
+    {22}let ksess: key = hkdfExpand(prk0,(lKsess,th)) in
+    {26}event doneA(A,B,NA,NB,ksess);
+    {27}out(c, (mac(kconf,confdata(th,macbWire)),senc(payloadA,ksess)))
+) | (
+    {28}!
+    {30}in(c, (IDA: id,IDB: id,pkAe_1: kempk,NA_1: bitstring,sigA_1: sig));
+    {31}if ((IDB = B) && (IDA = A)) then
+    {32}let (=A,=B,=pkAe_1,=NA_1) = iverify(sigA_1,vkA) in
+    {33}new NB_1: bitstring;
+    {34}new ss0_1: ss;
+    {36}event acceptB(A,B,NA_1,pkAe_1,NB_1);
+    {35}let ct0_1: kemct = kemEncap(ss0_1,pkAe_1) in
+    {29}let uskB_1: skey = uskB in
+    {37}let sigB_1: sig = isig((B,A,NB_1,ct0_1,NA_1),uskB_1) in
+    {38}out(c, (NB_1,ct0_1,sigB_1));
+    {40}let prk0_1: key = extract(salt(A,B,NA_1,NB_1),ss0_1) in
+    {39}let th_1: bitstring = transcript(A,B,NA_1,NB_1,pkAe_1,ct0_1,sigA_1,sigB_1) in
+    {41}let kconf_1: key = hkdfExpand(prk0_1,(lKconf,th_1)) in
+    {43}out(c, mac(kconf_1,th_1));
+    {44}in(c, macaWire: bitstring);
+    {45}let th1: bitstring = checkmac(macaWire,kconf_1) in
+    {46}if (th1 = confdata(th_1,mac(kconf_1,th_1))) then
+    {42}let ksess_1: key = hkdfExpand(prk0_1,(lKsess,th_1)) in
+    {47}event doneB(A,B,NA_1,NB_1,ksess_1);
+    {48}out(c, senc(payloadB,ksess_1))
+)
+
+-- Query 
+   not attacker(payloadA[])
+   not attacker(payloadB[])
+ in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker(payloadA[])
+RESULT not attacker(payloadA[]) is true.
+Starting query not attacker(payloadB[])
+RESULT not attacker(payloadB[]) is true.
+-- Query event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka))
+goal reachable: b-event(startA(A[],B[],NA_2,kemPK(skAe_1))) -> event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2))
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+RESULT event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) is true.
+-- Query inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka))
+goal reachable: @sid ≠ @sid_1 && b-inj-event(startA(A[],B[],NA_2,kemPK(skAe_1)),@occ14_1) -> inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2),@occ36_1) && inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3),@occ36_2)
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid_2]
+skAe_1 = skAe[peer = B[],!1 = @sid_2]
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid]
+@occ36_1 = @occ36[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid]
+NB_3 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+@occ36_2 = @occ36[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+@occ14_1 = @occ14[peer = B[],!1 = @sid_2]
+
+Derivation:
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+@occ36_1 = @occ36[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+NB_3 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_2]
+@occ36_2 = @occ36[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_2]
+@occ14_1 = @occ14[peer = B[],!1 = @sid]
+
+1. The attacker initially knows B[].
+attacker(B[]).
+
+2. The message B[] that the attacker may have by 1 may be received at input {8}.
+The event startA(A[],B[],NA_2,kemPK(skAe_1)) (with occurrence name @occ14_1) may be executed at {14}.
+So the message (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])) may be sent to the attacker at output {15}.
+attacker((A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]))).
+
+3. By 2, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 5-proj-5-tuple the attacker may obtain isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]).
+attacker(isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+
+4. By 2, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 4-proj-5-tuple the attacker may obtain NA_2.
+attacker(NA_2).
+
+5. By 2, the attacker may know (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+Using the function 3-proj-5-tuple the attacker may obtain kemPK(skAe_1).
+attacker(kemPK(skAe_1)).
+
+6. The attacker initially knows A[].
+attacker(A[]).
+
+7. By 6, the attacker may know A[].
+By 1, the attacker may know B[].
+By 5, the attacker may know kemPK(skAe_1).
+By 4, the attacker may know NA_2.
+By 3, the attacker may know isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]).
+Using the function 5-tuple the attacker may obtain (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])).
+attacker((A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]))).
+
+8. The message (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])) that the attacker may have by 7 may be received at input {30}.
+So event acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3) may be executed at {36} in session @sid_2.
+inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3),@occ36_2).
+
+9. By 8, inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3),@occ36_2).
+The goal is reached, represented in the following fact:
+inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3),@occ36_2).
+
+10. The message (A[],B[],kemPK(skAe_1),NA_2,isig((A[],B[],kemPK(skAe_1),NA_2),uskA[])) that the attacker may have by 7 may be received at input {30}.
+So event acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2) may be executed at {36} in session @sid_1.
+inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2),@occ36_1).
+
+11. By 10, inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2),@occ36_1).
+The goal is reached, represented in the following fact:
+inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2),@occ36_1).
+
+12. By 11, inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2),@occ36_1).
+By 9, inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3),@occ36_2).
+We have @occ36_1 ≠ @occ36_2.
+The goals for injectivity are reached, combined in the following fact:
+inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2),@occ36_1) && inj-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_3),@occ36_2).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new uskA: skey creating uskA_2 at {1}
+
+new uskB: skey creating uskB_2 at {2}
+
+out(c, (~M,~M_1)) with ~M = ispk(uskA_2), ~M_1 = ispk(uskB_2) at {5}
+
+in(c, B) at {8} in copy a
+
+new NA: bitstring creating NA_3 at {10} in copy a
+
+new skAe: kemsk creating skAe_2 at {11} in copy a
+
+event startA(A,B,NA_3,kemPK(skAe_2)) at {14} in copy a
+
+out(c, (~M_2,~M_3,~M_4,~M_5,~M_6)) with ~M_2 = A, ~M_3 = B, ~M_4 = kemPK(skAe_2), ~M_5 = NA_3, ~M_6 = isig((A,B,kemPK(skAe_2),NA_3),uskA_2) at {15} in copy a
+
+in(c, (A,B,~M_4,~M_5,~M_6)) with ~M_4 = kemPK(skAe_2), ~M_5 = NA_3, ~M_6 = isig((A,B,kemPK(skAe_2),NA_3),uskA_2) at {30} in copy a_1
+
+new NB_1: bitstring creating NB_4 at {33} in copy a_1
+
+new ss0_1: ss creating ss0_2 at {34} in copy a_1
+
+event acceptB(A,B,NA_3,kemPK(skAe_2),NB_4) at {36} in copy a_1 (goal)
+
+out(c, (~M_7,~M_8,~M_9)) with ~M_7 = NB_4, ~M_8 = kemEncap(ss0_2,kemPK(skAe_2)), ~M_9 = isig((B,A,NB_4,kemEncap(ss0_2,kemPK(skAe_2)),NA_3),uskB_2) at {38} in copy a_1
+
+out(c, ~M_10) with ~M_10 = mac(hkdfExpand(extract(salt(A,B,NA_3,NB_4),ss0_2),(lKconf,transcript(A,B,NA_3,NB_4,kemPK(skAe_2),kemEncap(ss0_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,NB_4,kemEncap(ss0_2,kemPK(skAe_2)),NA_3),uskB_2)))),transcript(A,B,NA_3,NB_4,kemPK(skAe_2),kemEncap(ss0_2,kemPK(skAe_2)),isig((A,B,kemPK(skAe_2),NA_3),uskA_2),isig((B,A,NB_4,kemEncap(ss0_2,kemPK(skAe_2)),NA_3),uskB_2))) at {43} in copy a_1
+
+in(c, (A,B,~M_4,~M_5,~M_6)) with ~M_4 = kemPK(skAe_2), ~M_5 = NA_3, ~M_6 = isig((A,B,kemPK(skAe_2),NA_3),uskA_2) at {30} in copy a_2
+
+new NB_1: bitstring creating NB_5 at {33} in copy a_2
+
+new ss0_1: ss creating ss0_3 at {34} in copy a_2
+
+event acceptB(A,B,NA_3,kemPK(skAe_2),NB_5) at {36} in copy a_2 (goal)
+
+The event acceptB(A,B,NA_3,kemPK(skAe_2),NB_4) is executed at {36} in copy a_1.
+The event acceptB(A,B,NA_3,kemPK(skAe_2),NB_5) is executed at {36} in copy a_2.
+A trace has been found.
+RESULT inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka)) is false.
+RESULT (but event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) is true.)
+-- Query event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks))
+goal reachable: b-event(doneA(A[],B[],NA_2,NB_2,hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))))) -> event(doneB(A[],B[],NA_2,NB_2,hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))))
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+RESULT event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) is true.
+-- Query inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks))
+goal reachable: b-inj-event(doneA(A[],B[],NA_2,NB_2,hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))),@occ26_1) -> inj-event(doneB(A[],B[],NA_2,NB_2,hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))),@occ47_1)
+The hypothesis occurs strictly before the conclusion.
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+@occ47_1 = @occ47[macaWire = mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),confdata(transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])),mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))),sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+@occ26_1 = @occ26[macbWire = mac(hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKconf,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[])))),transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))),sigB = isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]),ct0 = kemEncap(ss0_2,kemPK(skAe_1)),NB = NB_2,peer = B[],!1 = @sid]
+RESULT inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks)) is true.
+-- Query event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb))
+goal reachable: b-event(acceptB(A[],B[],NA_2,kemPK(skAe_1),NB_2)) -> event(doneA(A[],B[],NA_2,NB_2,hkdfExpand(extract(salt(A[],B[],NA_2,NB_2),ss0_2),(lKsess,transcript(A[],B[],NA_2,NB_2,kemPK(skAe_1),kemEncap(ss0_2,kemPK(skAe_1)),isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),isig((B[],A[],NB_2,kemEncap(ss0_2,kemPK(skAe_1)),NA_2),uskB[]))))))
+Abbreviations:
+NA_2 = NA[peer = B[],!1 = @sid]
+skAe_1 = skAe[peer = B[],!1 = @sid]
+NB_2 = NB_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+ss0_2 = ss0_1[sigA_1 = isig((A[],B[],kemPK(skAe_1),NA_2),uskA[]),NA_1 = NA_2,pkAe_1 = kemPK(skAe_1),IDB = B[],IDA = A[],!1 = @sid_1]
+RESULT event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker(payloadA[]) is true.
+
+Query not attacker(payloadB[]) is true.
+
+Query event(acceptB(xa,xb,na,pka,nb)) ==> event(startA(xa,xb,na,pka)) is true.
+
+Query inj-event(acceptB(xa,xb,na,pka,nb)) ==> inj-event(startA(xa,xb,na,pka)) is false.
+
+Query event(doneB(xa,xb,na,nb,ks)) ==> event(doneA(xa,xb,na,nb,ks)) is true.
+
+Query inj-event(doneB(xa,xb,na,nb,ks)) ==> inj-event(doneA(xa,xb,na,nb,ks)) is true.
+
+Query event(doneA(xa,xb,na,nb,ks)) ==> event(acceptB(xa,xb,na,pka,nb)) is true.
+
+--------------------------------------------------------------
+

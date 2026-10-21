@@ -1,0 +1,47 @@
+theory RestrictionProbeAfter
+begin
+
+/* -------------------------------------------------------------------------
+ * Diagnostic, not a protocol model - see RestrictionProbeBefore.spthy for the
+ * question being asked and the two possible answer patterns.
+ *
+ * Variant "After": identical to RestrictionProbeBefore.spthy except that the
+ * restriction block is declared at the very end of the theory, after both
+ * lemmas.  If the two probes disagree, declaration order matters in 1.12 and
+ * the pqake_replay_fixed.spthy restriction must move.
+ * ------------------------------------------------------------------------- */
+
+rule gen:
+  [ Fr( ~k ) ]
+  -->
+  [ Key( ~k ) ]
+
+rule use:
+  [ Key( k ) ]
+  -->
+  [ Use( k ) ]
+
+lemma uniqueness:
+  "All k1 k2 #i #j.
+     Use( k1 ) @ i & Use( k2 ) @ j
+     ==>
+     k1 = k2"
+
+lemma uniqueness_ind [use_induction]:
+  "All k1 k2 #i #j.
+     Use( k1 ) @ i & Use( k2 ) @ j
+     ==>
+     k1 = k2"
+
+lemma two_instances:
+  exists-trace
+  "Ex k1 k2 #i #j.
+     Use( k1 ) @ i & Use( k2 ) @ j & not( #i = #j )"
+
+restriction one_key:
+  "All k1 k2 #i #j.
+     Key( k1 ) @ i & Key( k2 ) @ j
+     ==>
+     #i = #j"
+
+end

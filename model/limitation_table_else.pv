@@ -1,0 +1,32 @@
+(****************************************************************************
+ * Why pqake_replay_fixed.pv still reports the injective query as false.
+ *
+ * 15 lines, no PQAKE in them: A publishes a token the adversary cannot forge,
+ * B accepts it once and keeps a replay cache.  Non-injective correspondence is
+ * proved TRUE, the injective version is reported FALSE even though the cache
+ * makes a second acceptance impossible.  So ProVerif 2.05 cannot use the
+ * negative branch of a table read (get ... else) to establish injectivity -
+ * incompleteness of the Horn-clause translation, not a counter-example.  The
+ * same signature shows up in pqake_replay_fixed.pv.
+ ****************************************************************************)
+free c: channel.
+free sk: bitstring [private].
+fun f(bitstring, bitstring): bitstring.
+reduc forall x: bitstring, k: bitstring; g(f(x,k), k) = x.
+table seen(bitstring).
+event start(bitstring).
+event accept(bitstring).
+query n: bitstring; inj-event(accept(n)) ==> inj-event(start(n)).
+let initiator =
+	new n: bitstring;
+	event start(n);
+	out(c, f(n, sk)).
+let responder =
+	in(c, y: bitstring);
+	let n = g(y, sk) in
+	get seen(=n) in
+		0
+	else
+		insert seen(n);
+		event accept(n).
+process ( (!initiator) | (!responder) )

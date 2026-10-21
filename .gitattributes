@@ -1,0 +1,3 @@
+# Keep LF in the repository: these are shell scripts, ProVerif models and C sources that
+# get run or compiled, and CRLF line endings break `sh`/`cc` on other machines.
+* text=auto eol=lf

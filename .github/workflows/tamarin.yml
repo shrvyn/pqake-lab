@@ -1,0 +1,100 @@
+name: Tamarin symbolic verification
+
+# Tamarin 1.12 ships Linux and macOS binaries only, and this project's ProVerif
+# models are run on Windows.  The phase-1 .spthy ports therefore need a Linux
+# host: this job provides one, so that no Java, WSL or Docker install is needed
+# on the machine the thesis was measured on.
+#
+#   gh run view <id> --repo shrvyn/pqake-lab            # verdicts
+#   gh run download <id> --repo shrvyn/pqake-lab -n tamarin-logs
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'model/**'
+      - '.github/workflows/tamarin.yml'
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tamarin 1.12 and Maude
+        run: |
+          set -e
+          mkdir -p ~/.local/bin
+          curl -sSL -o tam.tar.gz \
+            https://github.com/tamarin-prover/tamarin-prover/releases/download/1.12.0/tamarin-prover-1.12.0-linux64-ubuntu.tar.gz
+          tar -xzf tam.tar.gz -C ~/.local/bin
+          chmod a+x ~/.local/bin/tamarin-prover
+          curl -sSL -o maude.zip \
+            https://github.com/maude-lang/Maude/releases/download/Maude3.5.1/Maude-3.5.1-linux-x86_64.zip
+          unzip -oj maude.zip -d ~/.local/bin/
+          chmod a+x ~/.local/bin/maude
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          tamarin-prover --version
+          tamarin-prover --help > model/help.txt 2>&1 || true
+
+      - name: Prove every model
+        run: |
+          mkdir -p model/logs
+          for f in model/*.spthy; do
+            name=$(basename "$f" .spthy)
+            log="model/logs/$name.tamarin.log"
+            echo "===== $name"
+            # bash -e is the default shell here, and one model that fails to
+            # parse must not stop the other seven from being proved.
+            tamarin-prover --prove "$f" > "$log" 2>&1 && rc=0 || rc=$?
+            echo "exit $rc"
+            tail -30 "$log"
+          done
+
+      - name: Verdict table
+        if: always()
+        run: |
+          {
+            echo '| model | lemma | verdict |'
+            echo '| --- | --- | --- |'
+            for log in model/logs/*.tamarin.log; do
+              m=$(basename "$log" .tamarin.log)
+              # the "summary of summaries" block at the end of every transcript
+              awk -v m="$m" '/^  [a-zA-Z0-9_]+ \((all|exists)-traces\)/ {
+                               line = $0
+                               sub(/^ +/, "", line)
+                               verdict = line
+                               sub(/^[^ ]+ \([^)]*\): /, "", verdict)
+                               lemma = line
+                               sub(/ .*/, "", lemma)
+                               printf "| %s | %s | %s |\n", m, lemma, verdict
+                             }' "$log"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the raw proofs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tamarin-logs
+          path: |
+            model/logs/*.tamarin.log
+            model/help.txt
+
+      # The transcripts are published to a bot-owned branch so that they can be
+      # read back with plain `git fetch origin tamarin-logs`, without a gh
+      # install on the machine that runs the thesis.  The branch holds nothing
+      # but these logs and is overwritten by every run.
+      - name: Publish the transcripts
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan tamarin-logs
+          git add model/logs/*.tamarin.log
+          git add -f model/help.txt
+          git commit -qm "Tamarin 1.12 transcripts for ${{ github.sha }} [skip ci]"
+          git push -f origin tamarin-logs

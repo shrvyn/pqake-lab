@@ -1,0 +1,36 @@
+cycles_mean,cycles_min,iters,operation,scheme,us_mean,us_min
+245137.0,239315.0,20000,keypair,ML-KEM-512 (kyber512/ref),74.4,72.7
+264222.0,256376.0,20000,encaps,ML-KEM-512 (kyber512/ref),80.2,77.9
+129360.0,126983.0,20000,decaps,ML-KEM-512 (kyber512/ref),39.3,38.5
+927.0,927.0,20000,shake128_32B_out,keccak,0.281,0.0
+933.0,933.0,20000,shake256_32B_out,keccak,0.283,0.0
+305989.0,298781.0,20000,keypair,ML-KEM-768 (kyber768/ref),92.9,90.7
+332767.0,325412.0,20000,encaps,ML-KEM-768 (kyber768/ref),101.1,98.8
+207064.0,203444.0,20000,decaps,ML-KEM-768 (kyber768/ref),62.9,61.8
+954.0,954.0,20000,shake128_32B_out,keccak,0.29,0.0
+932.0,932.0,20000,shake256_32B_out,keccak,0.283,0.0
+370682.0,364550.0,200,keypair,Dilithium-2 (ML-DSA-44 class),112.6,110.7
+1168306.0,561131.0,3000,sign,Dilithium-2 (ML-DSA-44 class),354.7,170.4
+222190.0,218030.0,3000,verify,Dilithium-2 (ML-DSA-44 class),67.5,66.2
+535193.0,524435.0,200,keypair,Dilithium-3 (ML-DSA-65 class),162.5,159.2
+1868208.0,758933.0,3000,sign,Dilithium-3 (ML-DSA-65 class),567.2,230.4
+354148.0,350492.0,3000,verify,Dilithium-3 (ML-DSA-65 class),107.5,106.4
+265095.0,257466.0,100,keypair,IBS-K2L2,80.5,78.2
+51142.0,50028.0,3000,extract,IBS-K2L2,15.5,15.2
+1734538.0,135531.0,3000,sign,IBS-K2L2,526.6,41.1
+153768.0,149160.0,3000,verify,IBS-K2L2,46.7,45.3
+5536.0,5345.0,20000,poly_ntt,ring-n256-q8380417 (dilithium ref),1.715,1.6
+8564.0,8381.0,20000,poly_invntt_tomont,ring-n256-q8380417 (dilithium ref),2.634,2.5
+1179.0,1121.0,20000,poly_basemul_montgomery,ring-n256-q8380417 (dilithium ref),0.392,0.3
+4846.0,4751.0,20000,poly_uniform,ring-n256-q8380417 (dilithium ref),1.505,1.4
+2604.0,2573.0,20000,poly_uniform_eta,ring-n256-q8380417 (dilithium ref),0.825,0.8
+4856.0,4784.0,20000,poly_uniform_gamma1,ring-n256-q8380417 (dilithium ref),1.508,1.4
+1090.0,1088.0,20000,poly_challenge,ring-n256-q8380417 (dilithium ref),0.364,0.3
+1260.0,1220.0,20000,poly_decompose,ring-n256-q8380417 (dilithium ref),0.416,0.4
+438.0,428.0,20000,polyz_pack,ring-n256-q8380417 (dilithium ref),0.166,0.1
+604.0,593.0,20000,polyz_unpack,ring-n256-q8380417 (dilithium ref),0.217,0.2
+230.0,197.0,20000,polyw1_pack,ring-n256-q8380417 (dilithium ref),0.104,0.1
+1026.0,1022.0,20000,poly_reduce,ring-n256-q8380417 (dilithium ref),0.345,0.3
+961.0,923.0,20000,shake128_32B_out,ring-n256-q8380417 (dilithium ref),0.325,0.3
+1159.0,1121.0,20000,shake128_128B_out,ring-n256-q8380417 (dilithium ref),0.386,0.3
+1169.0,1121.0,20000,shake256_128B_out,ring-n256-q8380417 (dilithium ref),0.388,0.3

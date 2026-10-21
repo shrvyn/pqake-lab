@@ -1,0 +1,660 @@
+{
+ "generated": "2026-10-21 01:57:13",
+ "host": {
+  "platform": "nt",
+  "machine": "?"
+ },
+ "native": [
+  {
+   "scheme": "ML-KEM-512 (kyber512/ref)",
+   "operation": "keypair",
+   "iters": 20000,
+   "cycles_min": 239315.0,
+   "cycles_mean": 245137.0,
+   "us_min": 72.7,
+   "us_mean": 74.4
+  },
+  {
+   "scheme": "ML-KEM-512 (kyber512/ref)",
+   "operation": "encaps",
+   "iters": 20000,
+   "cycles_min": 256376.0,
+   "cycles_mean": 264222.0,
+   "us_min": 77.9,
+   "us_mean": 80.2
+  },
+  {
+   "scheme": "ML-KEM-512 (kyber512/ref)",
+   "operation": "decaps",
+   "iters": 20000,
+   "cycles_min": 126983.0,
+   "cycles_mean": 129360.0,
+   "us_min": 38.5,
+   "us_mean": 39.3
+  },
+  {
+   "scheme": "keccak",
+   "operation": "shake128_32B_out",
+   "iters": 20000,
+   "cycles_min": 927.0,
+   "cycles_mean": 927.0,
+   "us_min": 0.0,
+   "us_mean": 0.281
+  },
+  {
+   "scheme": "keccak",
+   "operation": "shake256_32B_out",
+   "iters": 20000,
+   "cycles_min": 933.0,
+   "cycles_mean": 933.0,
+   "us_min": 0.0,
+   "us_mean": 0.283
+  },
+  {
+   "scheme": "ML-KEM-768 (kyber768/ref)",
+   "operation": "keypair",
+   "iters": 20000,
+   "cycles_min": 298781.0,
+   "cycles_mean": 305989.0,
+   "us_min": 90.7,
+   "us_mean": 92.9
+  },
+  {
+   "scheme": "ML-KEM-768 (kyber768/ref)",
+   "operation": "encaps",
+   "iters": 20000,
+   "cycles_min": 325412.0,
+   "cycles_mean": 332767.0,
+   "us_min": 98.8,
+   "us_mean": 101.1
+  },
+  {
+   "scheme": "ML-KEM-768 (kyber768/ref)",
+   "operation": "decaps",
+   "iters": 20000,
+   "cycles_min": 203444.0,
+   "cycles_mean": 207064.0,
+   "us_min": 61.8,
+   "us_mean": 62.9
+  },
+  {
+   "scheme": "keccak",
+   "operation": "shake128_32B_out",
+   "iters": 20000,
+   "cycles_min": 954.0,
+   "cycles_mean": 954.0,
+   "us_min": 0.0,
+   "us_mean": 0.29
+  },
+  {
+   "scheme": "keccak",
+   "operation": "shake256_32B_out",
+   "iters": 20000,
+   "cycles_min": 932.0,
+   "cycles_mean": 932.0,
+   "us_min": 0.0,
+   "us_mean": 0.283
+  },
+  {
+   "scheme": "Dilithium-2 (ML-DSA-44 class)",
+   "operation": "keypair",
+   "iters": 200,
+   "cycles_min": 364550.0,
+   "cycles_mean": 370682.0,
+   "us_min": 110.7,
+   "us_mean": 112.6
+  },
+  {
+   "scheme": "Dilithium-2 (ML-DSA-44 class)",
+   "operation": "sign",
+   "iters": 3000,
+   "cycles_min": 561131.0,
+   "cycles_mean": 1168306.0,
+   "us_min": 170.4,
+   "us_mean": 354.7
+  },
+  {
+   "scheme": "Dilithium-2 (ML-DSA-44 class)",
+   "operation": "verify",
+   "iters": 3000,
+   "cycles_min": 218030.0,
+   "cycles_mean": 222190.0,
+   "us_min": 66.2,
+   "us_mean": 67.5
+  },
+  {
+   "scheme": "Dilithium-3 (ML-DSA-65 class)",
+   "operation": "keypair",
+   "iters": 200,
+   "cycles_min": 524435.0,
+   "cycles_mean": 535193.0,
+   "us_min": 159.2,
+   "us_mean": 162.5
+  },
+  {
+   "scheme": "Dilithium-3 (ML-DSA-65 class)",
+   "operation": "sign",
+   "iters": 3000,
+   "cycles_min": 758933.0,
+   "cycles_mean": 1868208.0,
+   "us_min": 230.4,
+   "us_mean": 567.2
+  },
+  {
+   "scheme": "Dilithium-3 (ML-DSA-65 class)",
+   "operation": "verify",
+   "iters": 3000,
+   "cycles_min": 350492.0,
+   "cycles_mean": 354148.0,
+   "us_min": 106.4,
+   "us_mean": 107.5
+  },
+  {
+   "scheme": "IBS-K2L2",
+   "operation": "keypair",
+   "iters": 100,
+   "cycles_min": 257466.0,
+   "cycles_mean": 265095.0,
+   "us_min": 78.2,
+   "us_mean": 80.5
+  },
+  {
+   "scheme": "IBS-K2L2",
+   "operation": "extract",
+   "iters": 3000,
+   "cycles_min": 50028.0,
+   "cycles_mean": 51142.0,
+   "us_min": 15.2,
+   "us_mean": 15.5
+  },
+  {
+   "scheme": "IBS-K2L2",
+   "operation": "sign",
+   "iters": 3000,
+   "cycles_min": 135531.0,
+   "cycles_mean": 1734538.0,
+   "us_min": 41.1,
+   "us_mean": 526.6
+  },
+  {
+   "scheme": "IBS-K2L2",
+   "operation": "verify",
+   "iters": 3000,
+   "cycles_min": 149160.0,
+   "cycles_mean": 153768.0,
+   "us_min": 45.3,
+   "us_mean": 46.7
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_ntt",
+   "iters": 20000,
+   "cycles_min": 5345.0,
+   "cycles_mean": 5536.0,
+   "us_min": 1.6,
+   "us_mean": 1.715
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_invntt_tomont",
+   "iters": 20000,
+   "cycles_min": 8381.0,
+   "cycles_mean": 8564.0,
+   "us_min": 2.5,
+   "us_mean": 2.634
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_basemul_montgomery",
+   "iters": 20000,
+   "cycles_min": 1121.0,
+   "cycles_mean": 1179.0,
+   "us_min": 0.3,
+   "us_mean": 0.392
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_uniform",
+   "iters": 20000,
+   "cycles_min": 4751.0,
+   "cycles_mean": 4846.0,
+   "us_min": 1.4,
+   "us_mean": 1.505
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_uniform_eta",
+   "iters": 20000,
+   "cycles_min": 2573.0,
+   "cycles_mean": 2604.0,
+   "us_min": 0.8,
+   "us_mean": 0.825
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_uniform_gamma1",
+   "iters": 20000,
+   "cycles_min": 4784.0,
+   "cycles_mean": 4856.0,
+   "us_min": 1.4,
+   "us_mean": 1.508
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_challenge",
+   "iters": 20000,
+   "cycles_min": 1088.0,
+   "cycles_mean": 1090.0,
+   "us_min": 0.3,
+   "us_mean": 0.364
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_decompose",
+   "iters": 20000,
+   "cycles_min": 1220.0,
+   "cycles_mean": 1260.0,
+   "us_min": 0.4,
+   "us_mean": 0.416
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "polyz_pack",
+   "iters": 20000,
+   "cycles_min": 428.0,
+   "cycles_mean": 438.0,
+   "us_min": 0.1,
+   "us_mean": 0.166
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "polyz_unpack",
+   "iters": 20000,
+   "cycles_min": 593.0,
+   "cycles_mean": 604.0,
+   "us_min": 0.2,
+   "us_mean": 0.217
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "polyw1_pack",
+   "iters": 20000,
+   "cycles_min": 197.0,
+   "cycles_mean": 230.0,
+   "us_min": 0.1,
+   "us_mean": 0.104
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "poly_reduce",
+   "iters": 20000,
+   "cycles_min": 1022.0,
+   "cycles_mean": 1026.0,
+   "us_min": 0.3,
+   "us_mean": 0.345
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "shake128_32B_out",
+   "iters": 20000,
+   "cycles_min": 923.0,
+   "cycles_mean": 961.0,
+   "us_min": 0.3,
+   "us_mean": 0.325
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "shake128_128B_out",
+   "iters": 20000,
+   "cycles_min": 1121.0,
+   "cycles_mean": 1159.0,
+   "us_min": 0.3,
+   "us_mean": 0.386
+  },
+  {
+   "scheme": "ring-n256-q8380417 (dilithium ref)",
+   "operation": "shake256_128B_out",
+   "iters": 20000,
+   "cycles_min": 1121.0,
+   "cycles_mean": 1169.0,
+   "us_min": 0.3,
+   "us_mean": 0.388
+  }
+ ],
+ "ibs_selftest": {
+  "rc": 0,
+  "log": [
+   "sign/verify round trip OK (59 attempts)",
+   "tampered message rejected = yes (code 3)",
+   "signature valid under a different identity = no (rejected) (code 3)",
+   "tampered response coefficient accepted = no (rejected) (code 3)",
+   "F1: s1 recovered from one issued usk bit-exactly = yes (0/512 slots differ)",
+   "F1: forgery for an identity the PKG never issued verifies = YES",
+   "distribution check over 300 signatures: mean attempts 24.00 (theory ~26.8), 6899 rejections from |LowBits(Ay)| and 0 from |z|; max|LowBits(Ay)| of the first attempt in [94094, 95231] against an abort bound of 94622, max|y| 13 (eta_y 13), max|z| 46 (abort bound 130463)",
+   "sizes: mpk=1568 B (rho 32 + t 512 x 3B), usk=1536 B, sigma=1920 B (w 384 + z 1536)",
+   "sign: 26.95 rejection attempts per accepted signature"
+  ],
+  "dist": {
+   "n": 300,
+   "attempts_mean": 24.0,
+   "attempts_theory": 26.8,
+   "rej_w": 6899,
+   "rej_z": 0,
+   "lo_min": 94094,
+   "lo_max": 95231,
+   "abort_w": 94622,
+   "max_y": 13,
+   "eta_y": 13,
+   "max_z": 46,
+   "abort_z": 130463
+  }
+ },
+ "py_symmetric": {
+  "hkdf_expand_32B": {
+   "us_mean": 3.4,
+   "us_min": 3.2,
+   "us_p95": 3.5,
+   "iters": 20000
+  },
+  "hmac_sha3_256": {
+   "us_mean": 3.0,
+   "us_min": 2.8,
+   "us_p95": 3.1,
+   "iters": 20000
+  },
+  "sha3_256": {
+   "us_mean": 1.1,
+   "us_min": 1.0,
+   "us_p95": 1.2,
+   "iters": 20000
+  },
+  "aes256gcm_seal_32B": {
+   "us_mean": 1.0,
+   "us_min": 0.8,
+   "us_p95": 1.1,
+   "iters": 20000
+  },
+  "aes256gcm_seal_256B": {
+   "us_mean": 1.0,
+   "us_min": 0.9,
+   "us_p95": 1.1,
+   "iters": 20000
+  },
+  "aes256gcm_open_32B": {
+   "us_mean": 1.0,
+   "us_min": 0.8,
+   "us_p95": 1.0,
+   "iters": 20000
+  }
+ },
+ "py_kem": {
+  "mlkem512_keygen": {
+   "us_mean": 20.2,
+   "us_min": 19.3,
+   "us_p95": 20.7,
+   "iters": 3000
+  },
+  "mlkem512_encaps": {
+   "us_mean": 13.1,
+   "us_min": 12.8,
+   "us_p95": 13.4,
+   "iters": 3000
+  },
+  "mlkem512_decaps": {
+   "us_mean": 19.4,
+   "us_min": 18.9,
+   "us_p95": 19.6,
+   "iters": 3000
+  }
+ },
+ "py_ibs": {
+  "setup": {
+   "us_mean": 10641.5,
+   "us_min": 10603.0,
+   "us_p95": 10683.5,
+   "iters": 5
+  },
+  "extract": {
+   "us_mean": 3873.3,
+   "us_min": 3845.8,
+   "us_p95": 3951.2,
+   "iters": 20
+  },
+  "sign": {
+   "us_mean": 121437.8,
+   "us_min": 9124.2,
+   "us_p95": 339772.9,
+   "iters": 40
+  },
+  "verify": {
+   "us_mean": 10578.3,
+   "us_min": 10496.9,
+   "us_p95": 10688.5,
+   "iters": 40
+  },
+  "attempts_mean": 24.27,
+  "attempts_max": 115,
+  "ops": {
+   "ntt_per_sign": 3,
+   "intt_per_sign": 2,
+   "basemul_per_sign": 6,
+   "ntt_per_verify": 8,
+   "intt_per_verify": 2,
+   "basemul_per_verify": 8,
+   "K": 2,
+   "L": 2,
+   "N": 256,
+   "q": 8380417
+  }
+ },
+ "py_protocol": {
+  "handshake_total": {
+   "us_mean": 171041.3,
+   "us_min": 39851.5,
+   "us_p95": 454124.5,
+   "iters": 12
+  },
+  "epoch_refresh_A": {
+   "us_mean": 136.1,
+   "us_min": 129.2,
+   "us_p95": 144.5,
+   "iters": 12
+  },
+  "message_pair": {
+   "us_mean": 24.3,
+   "us_min": 23.1,
+   "us_p95": 25.9,
+   "iters": 400
+  },
+  "encrypt_only": {
+   "us_mean": 12.7,
+   "us_min": 12.1,
+   "us_p95": 14.3,
+   "iters": 400
+  }
+ },
+ "wire": {
+  "M1": {
+   "bytes": 2805,
+   "components": {
+    "IDA": 12,
+    "IDB": 13,
+    "pkAe": 800,
+    "NA": 16,
+    "sigma": 1964
+   }
+  },
+  "M2": {
+   "bytes": 2789,
+   "components": {
+    "IDB": 13,
+    "IDA": 12,
+    "NB": 16,
+    "ct0": 768,
+    "NA": 16,
+    "sigma": 1964
+   }
+  },
+  "MsgA_refresh": {
+   "bytes": 897,
+   "components": {
+    "e": 4,
+    "AD": 76,
+    "pke": 800,
+    "MACA": 32
+   }
+  },
+  "MsgB_refresh": {
+   "bytes": 865,
+   "components": {
+    "e": 4,
+    "AD": 76,
+    "ct": 768,
+    "MACB": 32
+   }
+  },
+  "data_message": {
+   "bytes": 141,
+   "components": {
+    "e": 4,
+    "j": 8,
+    "nonce": 12,
+    "ad": 84,
+    "ct": 48
+   }
+  },
+  "confirmation": {
+   "bytes": 64,
+   "components": {
+    "MACA": 32,
+    "MACB": 32
+   }
+  },
+  "sigma_bytes_measured": 1964,
+  "sigma_bytes_analytic": 1964
+ },
+ "state": {
+  "per_session_node_bytes": 180,
+  "per_session_node_bytes_with_KRA": 212,
+  "identity_key_bytes": 1536,
+  "master_pk_bytes": 1568,
+  "eq_5_5_StAL1": {
+   "skIBS": 1536,
+   "pkIBS_GW": 1568,
+   "RK0": 32,
+   "KRA": 32
+  },
+  "eq_5_6_StAL2": {
+   "RK": 32,
+   "CK": 32,
+   "Epoch_ID": 4,
+   "KAEAD": 32
+  }
+ },
+ "ops_per_message": [
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 1,
+   "kem_keygen_per_msg": 1.0,
+   "kem_encaps_per_msg": 1.0,
+   "kem_decaps_per_msg": 1.0,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 8.0
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 10,
+   "kem_keygen_per_msg": 0.1,
+   "kem_encaps_per_msg": 0.1,
+   "kem_decaps_per_msg": 0.1,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.6
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 25,
+   "kem_keygen_per_msg": 0.04,
+   "kem_encaps_per_msg": 0.04,
+   "kem_decaps_per_msg": 0.04,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.24
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 50,
+   "kem_keygen_per_msg": 0.02,
+   "kem_encaps_per_msg": 0.02,
+   "kem_decaps_per_msg": 0.02,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.12
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 100,
+   "kem_keygen_per_msg": 0.01,
+   "kem_encaps_per_msg": 0.01,
+   "kem_decaps_per_msg": 0.01,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.06
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 250,
+   "kem_keygen_per_msg": 0.004,
+   "kem_encaps_per_msg": 0.004,
+   "kem_decaps_per_msg": 0.004,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.024
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 500,
+   "kem_keygen_per_msg": 0.002,
+   "kem_encaps_per_msg": 0.002,
+   "kem_decaps_per_msg": 0.002,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.012
+  },
+  {
+   "hkdf_expand": 2,
+   "aead_seal": 1,
+   "sha3": 1,
+   "hmac": 0,
+   "refresh_cadence_msgs": 1000,
+   "kem_keygen_per_msg": 0.001,
+   "kem_encaps_per_msg": 0.001,
+   "kem_decaps_per_msg": 0.001,
+   "ibs_sign_per_msg": 0.0,
+   "ibs_verify_per_msg": 0.0,
+   "hkdf_expand_per_msg": 2.006
+  }
+ ]
+}
