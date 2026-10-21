@@ -41,6 +41,7 @@ class Fleet:
     def __init__(self):
         self.mpk, self.msk = ibs.setup()
         self.keys = {}
+        self.seen_na = {}          # identity -> set of NAs that identity has answered
 
     def register(self, identity):
         self.keys[identity] = ibs.extract(self.mpk, self.msk, identity)
@@ -49,7 +50,8 @@ class Fleet:
     def node(self, identity, role="initiator"):
         if identity not in self.keys:
             self.register(identity)
-        return Session(identity, self.keys[identity], role, self.mpk)
+        return Session(identity, self.keys[identity], role, self.mpk,
+                       self.seen_na.setdefault(identity, set()))
 
 
 def handshake(net, A, B, sigA=None, sigB=None, ss_override=None):

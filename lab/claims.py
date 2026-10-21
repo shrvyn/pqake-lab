@@ -71,34 +71,25 @@ class ChainState:
 
 
 class RootState:
-    """The adversary the symbolic model gives us for free.
+    """The attack the original eq 4-32/4-33 handed out for free.
 
-    eq 5-6 puts RK *inside* the scraped message_state, and for every epoch after the
-    first one eq 4-32/4-33 derive the *initial* chain key as a function of RK alone.  So
-    a leak of the message state does not merely leak the chain from the exposure point
-    forwards (ChainState): it re-derives that epoch whole, backwards as well.  Earlier and
-    later epochs stay out of reach - rootKdf replaces RK at each refresh, and the new ss_e
-    is a KEM secret.
+    eq 5-6 puts RK inside the scraped message_state.  As first written, eq 4-32/4-33 seeded
+    every refreshed epoch's chain from that RK, so a scrape re-derived the epoch whole -
+    backwards as well as forwards.  The amended key schedule takes the chains from PRK_e and
+    keeps RK as a sibling branch, so this adversary now tries a seed the protocol no longer
+    uses; it must fail, and b8 measures whether it does.
     """
 
     def __init__(self, snap):
         self.epoch = snap["epoch"]
         self.th = snap["TH"]
-        # B's receiving chain of epoch e == A's sending chain == eq 4-32's SendKeys leaf.
-        # Epoch 0 is the exception the equations force: its chains are the CKA/CKB leaves
-        # of PRK0 (eq 4-18/4-19), and RK_0 = Expand(PRK0, "RootKey") (eq 4-15) does not
-        # determine them, so the root key only re-derives chains from epoch 1 up.
-        if self.epoch == 0:
-            self.ck0 = None
-        else:
-            self.ck0 = HKDF_Expand(snap["RK"], LAB_SEND + _u32(self.epoch) + self.th)
+        # B's receiving chain of epoch e == A's sending chain == the SendKeys leaf.
+        self.ck0 = HKDF_Expand(snap["RK"], LAB_SEND + _u32(self.epoch) + self.th)
 
     def open(self, msg):
         if msg["e"] != self.epoch:
             raise Error("message is from epoch %d, leaked root key is epoch %d"
                         % (msg["e"], self.epoch))
-        if self.ck0 is None:
-            raise Error("epoch 0 chains are not derived from RK")
         ck = self.ck0
         for j in range(0, msg["j"] + 1):
             mk = HKDF_Expand(ck, LAB_MK + _u32(msg["e"]) + _u64(j))
@@ -219,11 +210,11 @@ def a5_replay_m1():
                 % (accepted, outcome, matching if accepted else "n/a",
                    consteq(ksess_before, A.state["Ksess"]) if accepted else "n/a"),
                 "FAIL" if accepted else "PASS",
-                "B never checks NA for freshness, so a responder can be made to complete a "
-                "session with an initiator that is not participating: the AKE matching-sessions "
-                "property fails and an attacker gets phantom sessions attributed to a victim "
-                "(log/audit integrity, resource exhaustion). Erasure of skAe stops the session "
-                "from also capturing the initiator's side. Fix: FINDINGS.md F2")
+                "with the responder-side freshness rule of eq 4-6a in place - every NA it has "
+                "answered is recorded for the node, and a repeated NA aborts before any key is "
+                "derived - the stale M1 is refused by a fresh instance of the same identity, so "
+                "no phantom session is attributed to the victim. This is the repair that closes "
+                "F2; without the rule the same probe was accepted.")
 
 
 def a6_message_replay():
@@ -347,11 +338,13 @@ def b8_within_refreshed_epoch():
                 "other epochs %d/%d" % (chain_past, root_past, root_future,
                                        root_other, len(other)),
                 "FAIL" if root_past else "PASS",
-                "eq 4-32 derives CK^send_1 = HKDF(RK, 'SendKeys'||e||TH), so a scrape that "
-                "carries RK re-derives every message key of that epoch backwards and "
-                "forwards; erasure only helps if RK is outside the scrape set. ProVerif "
-                "agrees: pqake_ratchet.pv reaches pt20 from the scrape, and "
-                "pqake_ratchet_minstate.pv, which scrapes without RK, does not")
+                "eq 4-32/4-33 now seed the epoch's chains from PRK_e, the HKDF-Extract output "
+                "of eq 4-31, while the stored RK is a sibling branch of the same extract; a "
+                "scrape therefore cannot rebuild the epoch backwards, and the erasure of eq "
+                "4-37 is what bounds the damage. Residual, and stated as such: the same scrape "
+                "still carries the live chain key, so messages after the exposure point of that "
+                "epoch stay readable until the next asymmetric refresh repairs the root. This is "
+                "the repair that closes F5.")
 
 
 def b2_within_epoch():
@@ -373,11 +366,12 @@ def b2_within_epoch():
                 "chain-only: past %d/5, future %d/3  |  RK-aware: past %d/5, future %d/3"
                 % (chain_past, chain_future, root_past, root_future),
                 "FAIL" if root_past else "DOCUMENTED-LIMITATION",
-                "epoch 0 survives the RK-aware attacker because its chains are the "
-                "CKA/CKB leaves of PRK0 (eq 4-18/4-19) rather than functions of RK; a "
-                "symmetric chain still leaks forward from the exposure point until the KEM "
-                "refresh repairs it, which is why the design is a dual ratchet. Refreshed "
-                "epochs behave differently - see b8")
+                "a symmetric chain still leaks forward from the exposure point until the KEM "
+                "refresh repairs it, which is why the design is a dual ratchet; the RK side of "
+                "the same scrape is closed for every epoch, including this one, because the "
+                "chains are PRK leaves (eq 4-18/4-19 here, eq 4-32/4-33 after the amendment) "
+                "rather than functions of the stored root key. Refreshed epochs behave the "
+                "same way - see b8")
 
 
 def b3_pcs_recovery():
@@ -438,12 +432,11 @@ def b5_pcs_breaks_if_kra_is_stored():
     ss = proto.kem_decaps(dk, mb["ct"])
     TH2 = proto.H(snap["TH"], _u32(e), forged["pke"], mb["ct"], B.peer, B.id)
     prk = HKDF_Extract(snap["RK"], ss + _u32(e) + TH2)
-    rk2 = HKDF_Expand(prk, LAB_RK + TH2)
     msg = n.send(B.id, A.id, B.encrypt(b"plant=41.5"))
     # the attacker does not know which domain label B's outgoing chain uses: try both
     cracked = 0
     for lab in (LAB_SEND, LAB_RECV):
-        ck = HKDF_Expand(rk2, lab + _u32(e) + TH2)
+        ck = HKDF_Expand(prk, lab + _u32(e) + TH2)
         mk = HKDF_Expand(ck, LAB_MK + _u32(msg["e"]) + _u64(msg["j"]))
         try:
             if AESGCM(mk).decrypt(msg["nonce"], msg["ct"], msg["ad"]) == b"plant=41.5":

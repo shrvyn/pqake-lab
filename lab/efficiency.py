@@ -44,6 +44,26 @@ THESIS = {
     "node_total_bytes": 2048,           # "less than 2.0 kilobytes"
 }
 
+# The figures ch.5 states after this harness's measurements were folded back into it. Each
+# test below asserts THIS table, so the amended thesis is what gets verified; the old figure
+# stays in THESIS and in the note, which is what makes the correction auditable.
+AMENDED = {
+    "sigma_light": 1964,                # what ch.4-4's K=L=2 parameters actually produce
+    "setup_light_bytes": 5594,
+    "sigma_proposed": 2420,             # the high tier is priced with a standard ML-DSA-44
+    "setup_proposed_bytes": 6506,
+    "per_message_bytes": 109,
+    "refresh_a_bytes": 897,
+    "refresh_b_bytes": 865,
+    "pcs_bytes": 1762,
+    "usk_bytes": 1536,
+    "longterm_bytes": 2368,
+    "longterm_with_mpk_bytes": 3936,
+    "ratchet_state_bytes": 180,
+    "ratchet_state_with_kra_bytes": 212,
+    "sram_budget_bytes": 48 * 1024,     # Cortex-M4 class, not the class-1 profile
+}
+
 _cache = {}
 
 
@@ -166,140 +186,134 @@ def _asym(d):
 
 
 def e1_setup_overhead_light_tier():
-    """ch.5-4-1 eq (11-5): with |sigma| = 300 B the setup phase costs 2296 bytes."""
-    lay = _layout()
-    sig = lay["sigma"]
-    meta = lay["M1"]["TOTAL"] + lay["M2"]["TOTAL"] - 2 * sig
-    at_300 = meta + 2 * THESIS["sigma_light"]
-    measured = lay["M1"]["TOTAL"] + lay["M2"]["TOTAL"]
-    wpart = (ibs.K * ibs.N * 6 + 7) // 8 + ibs.TAU + (ibs.TAU + 7) // 8
-    return _rec(
-        "5-4-1 eq (11-5): the setup phase costs 2296 B in the light tier (|sigma| = 300 B)",
-        "byte accounting of the reference implementation",
-        "rebuild eq (11-5) from the fields the reference code actually serialises (M1 + M2), "
-        "separate the metadata term from the two signatures, then substitute both the "
-        "thesis' 300 B signature and the one ch.4-4's parameters produce",
-        "2296 B",
-        "metadata term = %s B; with |sigma| = 300 B the same layout gives %s B (the thesis "
-        "says %s B, so the arithmetic reproduces to within the %d B metadata constant); "
-        "ch.4-4's parameters give |sigma| = %s B, so the setup phase the reference code "
-        "sends is %s B" % (
-            _num(meta), _num(at_300), _num(THESIS["setup_light_bytes"]),
-            THESIS["setup_light_bytes"] - at_300, _num(sig), _num(measured)),
-        "FAIL",
-        "the equation is right and the tier is not: the 300 B signature it assumes cannot "
-        "come from this scheme, whose commitment alone is %s B (w at 6 bit/coeff = %d B, "
-        "plus the weight-%d challenge vector = %d B) before a single response coefficient is "
-        "sent. The light tier is the one table 5-3 and section 5-7 compare with the "
-        "competitors, so the measured setup is %.1fx the figure the comparison uses." % (
-            _num(wpart), (ibs.K * ibs.N * 6 + 7) // 8, ibs.TAU,
-            ibs.TAU + (ibs.TAU + 7) // 8, measured / float(THESIS["setup_light_bytes"])))
-
-
-def e2_setup_overhead_proposed_tier():
-    """ch.5-4-1: with |sigma| = 2400 B the setup phase costs 6496 bytes."""
-    lay = _layout()
-    sig = lay["sigma"]
-    meta = lay["M1"]["TOTAL"] + lay["M2"]["TOTAL"] - 2 * sig
-    at_2400 = meta + 2 * THESIS["sigma_proposed"]
-    with_ml_dsa = meta + 2 * THESIS["sigma_dilithium2"]
-    delta = THESIS["setup_proposed_bytes"] - at_2400
-    return _rec(
-        "5-4-1: the setup phase costs 6496 B in the proposed tier (|sigma| = 2400 B)",
-        "byte accounting of the reference implementation",
-        "the same reconstruction with the 2400 B signature of the 'high security' tier, and "
-        "again substituting a real ML-DSA-44 signature (2420 B) instead of the IBS",
-        "6496 B",
-        "with |sigma| = 2400 B the layout gives %s B (%.2f%% from the claim, the same %d B "
-        "metadata constant as eq 11-5); with an actual ML-DSA-44 signature the reference "
-        "code would send %s B; with the IBS of ch.4-4 it sends %s B" % (
-            _num(at_2400), 100.0 * abs(delta) / THESIS["setup_proposed_bytes"], delta,
-            _num(with_ml_dsa), _num(meta + 2 * sig)),
-        "PASS" if abs(delta) <= 32 else "FAIL",
-        "the thesis' arithmetic survives at this tier - which is the honest reading: the "
-        "6496 B row is what you get by *replacing* the identity-based signature with a "
-        "standard one. Combined with e1, the two tiers the thesis prices are 300 B and "
-        "2400 B signatures, and the scheme it designs produces neither (%s B)."
-        % _num(sig))
-
-
-def e3_per_message_overhead():
-    """table 5-3: a normal message costs 16 bytes of overhead (a fixed MAC)."""
-    lay = _layout()["data_message"]
-    plain = 32
-    overhead = lay["TOTAL"] - plain
-    return _rec(
-        "5-4-1 / table 5-3: per-message communication overhead is 16 B (a fixed MAC)",
-        "byte accounting of the reference implementation",
-        "serialise one ratchet-layer data message exactly as the reference code does and "
-        "split the transmitted framing from the payload",
-        "16 B",
-        "%s B on the wire for a %d B payload = %s B of framing: epoch %s + counter %s + "
-        "nonce %s + associated data %s + ciphertext+tag %s" % (
-            _num(lay["TOTAL"]), plain, _num(overhead), _num(lay["e"]), _num(lay["j"]),
-            _num(lay["nonce"]), _num(lay["ad"]), _num(lay["ct"])),
-        "PASS" if overhead <= 24 else "FAIL",
-        "the 16 B row counts the AEAD tag alone. A message that also carries what eq "
-        "4-34..4-36 requires - the epoch and message counters for key skipping, the AES-GCM "
-        "nonce, and the AD that binds the message to (IDA, IDB, e, j, TH) - costs %s B, "
-        "i.e. %.1fx the table's figure. On 802.15.4 (127 B MACU) that is the difference "
-        "between one frame and two." % (_num(overhead),
-                                        overhead / float(THESIS["per_message_bytes"])))
-
-
-def e4_refresh_and_pcs_overhead():
-    """tables 5-2 and 5-3: a refresh is 816 B out and 784 B back, 1600 B round trip."""
-    lay = _layout()
-    ma, mb = lay["MsgA_refresh"], lay["MsgB_refresh"]
-    trip = ma["TOTAL"] + mb["TOTAL"]
-    return _rec(
-        "5-4-1 / tables 5-2 and 5-3: the asymmetric refresh costs 816 B + 784 B = 1600 B",
-        "byte accounting of the reference implementation",
-        "measure both refresh legs as the reference code emits them, and account for every "
-        "byte the thesis' 800+16 / 768+16 arithmetic omits",
-        "816 B (A) + 784 B (B) = 1600 B",
-        "A = %s B (epoch %s + AD %s + pk %s + MAC %s), B = %s B (epoch %s + AD %s + ct %s "
-        "+ MAC %s) = %s B round trip, +%d B per leg" % (
-            _num(ma["TOTAL"]), _num(ma["e"]), _num(ma["AD"]), _num(ma["pke"]),
-            _num(ma["MACA"]), _num(mb["TOTAL"]), _num(mb["e"]), _num(mb["AD"]),
-            _num(mb["ct"]), _num(mb["MACB"]), _num(trip),
-            ma["TOTAL"] - THESIS["refresh_a_bytes"]),
-        "PASS" if (ma["TOTAL"] - THESIS["refresh_a_bytes"]) <= 8 else "FAIL",
-        "the thesis counts only the KEM material and a 16 B MAC. Eq 4-25/4-26 additionally "
-        "put a %d B epoch-binding context (AD = IDA||IDB||e||TH) and a 4 B epoch number on "
-        "the wire, and the design's lambda = 256 makes the MAC %d B not 16 B: %d + %d + %d "
-        "= 81 B on each leg. Table 5-3's PCS row should read %s B." % (
-            ma["AD"], ma["MACA"], ma["AD"], ma["e"], ma["MACA"] - 16, _num(trip)))
-
-
-def e5_comparison_with_other_schemes():
-    """table 5-3 / ch.5-7: setup is lighter than PiLike [8] (3860 B) and AKAME [4] (4160 B)."""
+    """ch.5-4-1 eq (11-5) as amended: the light tier IS the ch.4-4 instance, |sigma| = 1964 B."""
     lay = _layout()
     sig = lay["sigma"]
     measured = lay["M1"]["TOTAL"] + lay["M2"]["TOTAL"]
     meta = measured - 2 * sig
-    light = meta + 2 * THESIS["sigma_light"]
+    ok = (measured == AMENDED["setup_light_bytes"] and sig == AMENDED["sigma_light"]
+          and meta == AMENDED["setup_light_bytes"] - 2 * AMENDED["sigma_light"])
     return _rec(
-        "5-7 / table 5-3: 'the proposed scheme, in its light parameters (2296 B), performs "
-        "better than [8]' (PiLike 3860 B, AKAME 4160 B)",
+        "5-4-1 eq (11-5): the light tier's setup phase costs 5594 B, with |sigma| = 1964 B "
+        "and a 1666 B non-signature term",
+        "byte accounting of the reference implementation",
+        "rebuild eq (11-5) from the fields the reference code actually serialises (M1 + M2), "
+        "separate the metadata term from the two signatures, and check the three numbers the "
+        "amended section now prints",
+        "5594 B",
+        "metadata + KEM material = %s B, |sigma| = %s B, setup phase on the wire = %s B" % (
+            _num(meta), _num(sig), _num(measured)),
+        "PASS" if ok else "FAIL",
+        "this row used to claim 2296 B at |sigma| = 300 B. Two corrections: the arithmetic "
+        "constant is %d B, not the 1696 B the old substitution implied, and no 300 B signature "
+        "comes out of ch.4-4 - the commitment (%s B at 6 bit/coeff) and the weight-%d challenge "
+        "vector (%d B) already exceed 300 B before a response coefficient is sent, so the tier "
+        "is priced with the signature the parameters actually produce. The equation itself is "
+        "unchanged." % (meta, _num((ibs.K * ibs.N * 6 + 7) // 8), ibs.TAU,
+                        ibs.TAU + (ibs.TAU + 7) // 8))
+
+
+def e2_setup_overhead_proposed_tier():
+    """ch.5-4-1 as amended: the high tier is priced with a standard ML-DSA-44 signature."""
+    lay = _layout()
+    sig = lay["sigma"]
+    meta = lay["M1"]["TOTAL"] + lay["M2"]["TOTAL"] - 2 * sig
+    with_ml_dsa = meta + 2 * AMENDED["sigma_proposed"]
+    ok = with_ml_dsa == AMENDED["setup_proposed_bytes"]
+    return _rec(
+        "5-4-1: the proposed tier's setup phase costs 6506 B, i.e. 1666 B of material plus two "
+        "2420 B ML-DSA-44 signatures",
+        "byte accounting of the reference implementation",
+        "the same reconstruction, substituting the standard signature the high tier names "
+        "instead of an IBS of the same width",
+        "6506 B",
+        "with |sigma| = %s B the layout gives %s B; the identity-based signature of ch.4-4 "
+        "would give %s B" % (_num(AMENDED["sigma_proposed"]), _num(with_ml_dsa),
+                             _num(meta + 2 * sig)),
+        "PASS" if ok else "FAIL",
+        "the old row said 6496 B at |sigma| = 2400 B. The thesis' arithmetic was 30 B off the "
+        "metadata constant and the 2400 B signature is not a published size either; the tier "
+        "now names ML-DSA-44 (2420 B) and the total follows.")
+
+
+def e3_per_message_overhead():
+    """ch.5-4-1 eq (12-5) / table 5-3 as amended: a normal message carries 109 B of framing."""
+    lay = _layout()["data_message"]
+    plain = 32
+    overhead = lay["TOTAL"] - plain
+    ok = overhead == AMENDED["per_message_bytes"]
+    return _rec(
+        "5-4-1 eq (12-5) / table 5-3: a normal message costs 109 B of framing over its payload "
+        "(epoch 4 + counter 8 + nonce 12 + bound context 69 + tag 16)",
+        "byte accounting of the reference implementation",
+        "serialise one ratchet-layer data message exactly as the reference code does and split "
+        "the transmitted framing from the payload",
+        "109 B",
+        "%s B on the wire for a %d B payload = %s B of framing: epoch %s + counter %s + nonce "
+        "%s + associated data %s + ciphertext+tag %s" % (
+            _num(lay["TOTAL"]), plain, _num(overhead), _num(lay["e"]), _num(lay["j"]),
+            _num(lay["nonce"]), _num(lay["ad"]), _num(lay["ct"])),
+        "PASS" if ok else "FAIL",
+        "the row read 16 B, which is the AEAD tag on its own. Eq 4-34..4-36 also put the epoch "
+        "and message counters (needed for key skipping), the AES-GCM nonce and the AD that binds "
+        "the message to (IDA, IDB, e, j, TH) on the wire; the amended figure counts all of it. "
+        "On 802.15.4 with a 127 B MAC payload the difference between 16 B and 109 B of framing "
+        "is the difference between one frame and two, so the section states it as two.")
+
+
+def e4_refresh_and_pcs_overhead():
+    """ch.5-4-1 eq (13-5) / tables 5-2, 5-3 as amended: 897 B + 865 B = 1762 B per refresh."""
+    lay = _layout()
+    ma, mb = lay["MsgA_refresh"], lay["MsgB_refresh"]
+    trip = ma["TOTAL"] + mb["TOTAL"]
+    ok = (ma["TOTAL"] == AMENDED["refresh_a_bytes"]
+          and mb["TOTAL"] == AMENDED["refresh_b_bytes"]
+          and trip == AMENDED["pcs_bytes"])
+    return _rec(
+        "5-4-1 eq (13-5) / tables 5-2 and 5-3: the asymmetric refresh costs 897 B + 865 B = "
+        "1762 B round trip",
+        "byte accounting of the reference implementation",
+        "measure both refresh legs as the reference code emits them and account for the epoch "
+        "number, the 61 B binding context and the lambda = 256 MAC that the KEM-only arithmetic "
+        "leaves out",
+        "1762 B",
+        "A = %s B (epoch %s + AD %s + pk %s + MAC %s), B = %s B (epoch %s + AD %s + ct %s "
+        "+ MAC %s) = %s B round trip" % (
+            _num(ma["TOTAL"]), _num(ma["e"]), _num(ma["AD"]), _num(ma["pke"]),
+            _num(ma["MACA"]), _num(mb["TOTAL"]), _num(mb["e"]), _num(mb["AD"]),
+            _num(mb["ct"]), _num(mb["MACB"]), _num(trip)),
+        "PASS" if ok else "FAIL",
+        "the old figure was 816 + 784 = 1600 B: the KEM material plus a 16 B MAC. Eq 4-25/4-26 "
+        "add a %d B epoch-binding context and a 4 B epoch number to each leg, and lambda = 256 "
+        "makes the MAC %d B rather than 16 B - %d B per leg, %d B over the round trip." % (
+            ma["AD"], ma["MACA"], ma["AD"] + ma["e"] + ma["MACA"] - 16,
+            trip - THESIS["pcs_bytes"]))
+
+
+def e5_comparison_with_other_schemes():
+    """table 5-3 / ch.5-7 as amended: setup is heavier than [8]/[4]; the gain is cumulative."""
+    lay = _layout()
+    measured = lay["M1"]["TOTAL"] + lay["M2"]["TOTAL"]
+    vs_pilike = 100.0 * (measured - THESIS["pilike_bytes"]) / THESIS["pilike_bytes"]
+    vs_akame = 100.0 * (measured - THESIS["akame_bytes"]) / THESIS["akame_bytes"]
+    ok = (measured == AMENDED["setup_light_bytes"]
+          and measured > THESIS["pilike_bytes"] and measured > THESIS["akame_bytes"])
+    return _rec(
+        "5-7 / table 5-3: the light tier's setup phase (5594 B) is above PiLike [8] (3860 B) "
+        "and AKAME [4] (4160 B), and the design's advantage is the cumulative one of e6",
         "byte accounting of the reference implementation",
         "put the measured handshake of this design on the same footing as the competitor "
-        "figures quoted in table 5-3",
-        "proposed below 3860 B and below 4160 B",
-        "measured %s B = +%.0f%% against PiLike [8] (%s B) and +%.0f%% against AKAME [4] "
-        "(%s B). The claimed ordering holds only at |sigma| = 300 B, where the same layout "
-        "gives %s B" % (
-            _num(measured),
-            100.0 * (measured - THESIS["pilike_bytes"]) / THESIS["pilike_bytes"],
-            _num(THESIS["pilike_bytes"]),
-            100.0 * (measured - THESIS["akame_bytes"]) / THESIS["akame_bytes"],
-            _num(THESIS["akame_bytes"]), _num(light)),
-        "FAIL" if measured > THESIS["pilike_bytes"] else "PASS",
-        "the thesis' headline efficiency comparison inverts under measurement: as specified, "
-        "the design is heavier at setup than both schemes it claims to beat. It earns the "
-        "difference back on the later legs, which table 5-3 does not price - neither "
-        "competitor has a ratchet ('requires re-running the key agreement' is in the same "
-        "table) - so the defensible version of this claim is the cumulative one in e6.")
+        "figures quoted in table 5-3 and check the ordering the amended row states",
+        "heavier at setup, lighter per message",
+        "measured %s B = +%.0f%% against PiLike [8] (%s B) and +%.0f%% against AKAME [4] (%s B)"
+        % (_num(measured), vs_pilike, _num(THESIS["pilike_bytes"]), vs_akame,
+           _num(THESIS["akame_bytes"])),
+        "PASS" if ok else "FAIL",
+        "the row used to claim the opposite ordering, at 2296 B. The single-phase comparison "
+        "genuinely goes against this design once the signature it actually produces is priced; "
+        "what it wins is every later leg, which neither competitor has (the same table says "
+        "they 'require re-running the key agreement'), so the comparison is stated per phase "
+        "and summed in e6 rather than claimed in one snapshot.")
 
 
 def e6_cumulative_vs_competitors():
@@ -350,51 +364,51 @@ def _crossover(setup, msg, refresh, other):
 
 
 def e7_longterm_memory():
-    """ch.5-5: long-term memory = usk (~1024 B) + reference pk (~800 B) + KRA = 1856 B."""
+    """ch.5-5 as amended: 2368 B of long-term keys, 3936 B counting the group public key."""
     st = _state()
     usk, mpk = st["identity_key_bytes"], st["master_pk_bytes"]
     ours = usk + 800 + 32
+    ok = (usk == AMENDED["usk_bytes"] and ours == AMENDED["longterm_bytes"]
+          and ours + mpk == AMENDED["longterm_with_mpk_bytes"])
     return _rec(
-        "5-5: long-term key memory is 1856 B (usk ~1024 B + reference public key ~800 B + "
-        "KRA 32 B)",
+        "5-5: long-term key memory is 2368 B (usk_id 1536 B + KEM public key 800 B + KRA 32 B) "
+        "and 3936 B once the group public key a verifier must hold is counted",
         "byte accounting of the reference implementation",
         "measure the identity key and the group public key ch.4-4's parameters actually "
         "produce, then add the 800 B KEM public key and the 32 B KRA the thesis lists",
-        "1856 B",
-        "usk = %s B (L=%d vectors of n=%d coefficients at 3 B = %d*%d*3), so own key + KEM "
-        "pk + KRA = %s B; a verifier must additionally hold the group public key mpk = %s B, "
-        "giving %s B. The 800 B term is correct: ML-KEM-512's encapsulation key measures 800 B."
-        % (_num(usk), ibs.L, ibs.N, ibs.L, ibs.N, _num(ours), _num(mpk), _num(ours + mpk)),
-        "FAIL" if ours > THESIS["longterm_bytes"] else "PASS",
-        "the thesis' 1024 B is neither a packed Dilithium-style secret (which is seed-sized, "
-        "32 B) nor this scheme's expanded key (%d B): %d B is %d B more, and if the group "
-        "public key is counted - it must be, or nothing verifies - the long-term total is "
-        "%d B, i.e. the section's '<2.0 kB' node budget is spent before any session state."
-        % (usk, usk, usk - THESIS["usk_assumed_bytes"], ours + mpk))
+        "2368 B / 3936 B",
+        "usk = %s B (L=%d vectors of n=%d coefficients at 3 B = %d*%d*3), own key + KEM pk + "
+        "KRA = %s B, plus mpk = %s B gives %s B" % (
+            _num(usk), ibs.L, ibs.N, ibs.L, ibs.N, _num(ours), _num(mpk), _num(ours + mpk)),
+        "PASS" if ok else "FAIL",
+        "the section said 1856 B, built on a 1024 B identity key. Ch.4-4's expansion is L "
+        "vectors of n coefficients, 3 B per coefficient, so %d B; and the group public key was "
+        "not counted at all although every Verify needs it. The 800 B KEM term was right."
+        % usk)
 
 
 def e8_ratchet_state_memory():
-    """ch.5-5: the double ratchet needs 104 B of live session state."""
+    """ch.5-5 as amended: 180 B of live session state, 212 B with KRA in RAM."""
     st = _state()
-    extra = st["per_session_node_bytes"] - THESIS["ratchet_state_bytes"]
+    ok = (st["per_session_node_bytes"] == AMENDED["ratchet_state_bytes"]
+          and st["per_session_node_bytes_with_KRA"] == AMENDED["ratchet_state_with_kra_bytes"])
     return _rec(
-        "5-5: the ratchet layer needs 104 B of live session state (RK + CKs + CKr + 8 B of "
-        "counters)",
+        "5-5: the double ratchet needs 180 B of live session state, 212 B if KRA is kept in RAM "
+        "alongside it",
         "byte accounting of the reference implementation",
-        "count everything a running session must keep in order to send, receive, skip ahead "
-        "and authenticate a refresh, per eq 4-11..4-36",
-        "104 B",
-        "%s B as implemented, %s B with KRA in RAM (which eq 5-5's StAL1 requires). The extra "
-        "%s B is TH (32, required by eq 4-25 and 4-36), the epoch number (4), two counters "
-        "instead of one (8 + 8) and the key-confirmation material" % (
-            _num(st["per_session_node_bytes"]), _num(st["per_session_node_bytes_with_KRA"]),
-            _num(extra)),
-        "PASS" if st["per_session_node_bytes"] <= 128 else "FAIL",
-        "104 B is reachable only by dropping the transcript binding, and that binding is "
-        "what makes eq 4-26's refresh authentication and the UKS resistance of 5-2-4 work. "
-        "The honest figure for the protocol as specified is %d B - still trivial for a "
-        "Cortex-M4 with 48 kB of SRAM, and not compatible with the 'class 1' framing of the "
-        "same section (see e13)." % st["per_session_node_bytes"])
+        "count everything a running session must keep in order to send, receive, skip ahead and "
+        "authenticate a refresh, per eq 4-11..4-36",
+        "180 B / 212 B",
+        "%s B as implemented, %s B with KRA in RAM. The state is RK, CK^send, CK^recv, TH, the "
+        "epoch number, both message counters and the received-index set" % (
+            _num(st["per_session_node_bytes"]), _num(st["per_session_node_bytes_with_KRA"])),
+        "PASS" if ok else "FAIL",
+        "104 B is reachable only by dropping the transcript binding, and that binding is what "
+        "makes eq 4-26's refresh authentication and the UKS resistance of 5-2-4 work. The "
+        "amended figure also states the KRA rule of 5-2-6: KRA belongs to the long-term key "
+        "store, and the %d B figure is what a node pays if it keeps it in the session state "
+        "instead - which is exactly the exposure eq 5-5 documents."
+        % st["per_session_node_bytes_with_KRA"])
 
 
 def e9_role_operation_sets():
@@ -508,72 +522,74 @@ def e11_no_signature_in_refresh():
 
 
 def e12_signing_cost_claim():
-    """ch.5-7 / ch.4-4's rationale: rank 2 keeps the identity-based signature cheap."""
+    """ch.5-7 / table 5-4 as amended: rank 2 wins on keygen and verify, loses on signing."""
     ibs_sign, d2_sign = _cycles("IBS-K2L2", "sign"), _cycles("Dilithium-2", "sign")
     ibs_vf, d2_vf = _cycles("IBS-K2L2", "verify"), _cycles("Dilithium-2", "verify")
     ibs_kg, d2_kg = _cycles("IBS-K2L2", "keypair"), _cycles("Dilithium-2", "keypair")
     if not ibs_sign or not d2_sign:
         return _rec(
-            "5-7 / table 5-4: moving the IBS into phase 1 is affordable because a rank-2 "
-            "identity-based signature is cheap",
+            "5-7 / table 5-4: the rank-2 identity-based signature costs 72% of ML-DSA-44 to "
+            "generate a key and 69% to verify, and 148% to sign",
             "native cycles (c/ibs.c on the Dilithium ring vs the Dilithium-2 reference)",
             "compare measured mean cycles of one accepted signature",
-            "below a standard signature of the same security class",
+            "as stated per operation",
             "no native benchmark present - run c/build.sh, then python -c "
             "\"from lab import perf; perf.measure()\"",
             "DOCUMENTED-LIMITATION", "the claim was not testable at the time of this run")
     acc_p = (1.0 - 609.0 / 95232.0) ** 512
     acc_d2 = (1.0 - 78.0 / 95232.0) ** 1024
+    kg, sg, vf = (100.0 * ibs_kg / d2_kg, 100.0 * ibs_sign / d2_sign, 100.0 * ibs_vf / d2_vf)
+    ok = (abs(kg - 72) <= 2 and abs(vf - 69) <= 2 and abs(sg - 148) <= 3)
     return _rec(
-        "5-7 / table 5-4: moving the IBS into phase 1 is affordable because a rank-2 "
-        "identity-based signature is cheap",
+        "5-7 / table 5-4: the rank-2 identity-based signature costs 72% of ML-DSA-44 for key "
+        "generation and 69% for verification, but 148% for signing - the handshake is cheaper "
+        "with a standard signature",
         "native cycles (c/ibs.c on the Dilithium ring vs the Dilithium-2 reference)",
-        "compare measured mean cycles of one accepted signature and of one verification, on "
-        "the same ring (n=256, q=8380417), same machine, with message-varying rejection "
-        "loops in both",
-        "K=L=2 should undercut K=L=4 (Dilithium-2) across the board",
-        "sign %s cycles = %.0f%% of a Dilithium-2 signature (%s); verify %s = %.0f%% of "
-        "Dilithium-2's; keygen %s = %.0f%% of Dilithium-2's" % (
-            _num(ibs_sign), 100.0 * ibs_sign / d2_sign, _num(d2_sign),
-            _num(ibs_vf), 100.0 * ibs_vf / d2_vf, _num(ibs_kg), 100.0 * ibs_kg / d2_kg),
-        "PASS" if ibs_sign <= d2_sign else "FAIL",
-        "keygen and verify win exactly as the dimension argument predicts; sign loses, "
-        "because beta = (tau-1)*W_H*eta+1 = 609 against Dilithium's 78 puts the per-attempt "
-        "acceptance at %.3f instead of %.3f, i.e. %.1f rejection attempts per signature "
-        "against %.1f. The cost is in the homomorphic key derivation, not the ring, so any "
-        "patch that keeps usk_id = h*s1 inherits it - which includes every fix that keeps "
-        "the escrow property 5-2-8 concedes." % (
+        "compare measured mean cycles of one accepted signature, of one verification and of one "
+        "key pair, on the same ring (n=256, q=8380417), same machine, with message-varying "
+        "rejection loops in both",
+        "72% / 69% / 148% of ML-DSA-44",
+        "keygen %s cycles = %.0f%% of Dilithium-2's; verify %s = %.0f%%; sign %s = %.0f%% of "
+        "a Dilithium-2 signature (%s)" % (
+            _num(ibs_kg), kg, _num(ibs_vf), vf, _num(ibs_sign), sg, _num(d2_sign)),
+        "PASS" if ok else "FAIL",
+        "table 5-4 formerly argued that K = L = 2 makes the identity-based signature cheap "
+        "enough to place in phase 1. The dimensional argument holds for keygen and verification "
+        "and fails for signing: beta = (tau-1)*W_H*eta+1 = 609 against Dilithium's 78 puts the "
+        "per-attempt acceptance at %.3f instead of %.3f, i.e. %.1f rejection attempts per "
+        "signature against %.1f. The cost sits in the homomorphic key derivation, not in the "
+        "ring, so any construction that keeps usk_id = h*s1 inherits it." % (
             acc_p, acc_d2, 1.0 / acc_p, 1.0 / acc_d2))
 
 
 def e13_class1_mcu_feasibility():
-    """ch.5-5's conclusion: the footprint makes the design runnable on class-1 MCUs."""
+    """ch.5-5 as amended: the footprint is a Cortex-M4-class budget, not a class-1 one."""
     st = _state()
     usk, mpk = st["identity_key_bytes"], st["master_pk_bytes"]
     keys = usk + 800 + 32
     total = keys + st["per_session_node_bytes"]
+    with_mpk = total + mpk
+    ok = (total == 2548 and with_mpk == 4116
+          and 4 * with_mpk <= AMENDED["sram_budget_bytes"])
     return _rec(
-        "5-5: the measured footprint ('less than 2.0 kB') makes the design runnable on "
-        "resource-limited class-1 microcontrollers (ARM Cortex-M series)",
+        "5-5: the persistent footprint is 2548 B (4116 B with the group public key), which the "
+        "section places on a Cortex-M4-class node with 48 kB of SRAM - not on a class-1 part",
         "capacity arithmetic from the reference implementation + pqm4's published M4 figures",
-        "add up what a node must hold in RAM (identity key, KEM public key, KRA, session "
-        "state) against a class-1 budget, and note what the same section's algorithm needs "
-        "for stack and working memory",
-        "node state + keys under 2048 B",
-        "%s B of key material, %s B with the session state, %s B once the group public key "
-        "the verifier must hold is counted - and that is before code, stack, the NTT working "
-        "buffers or the AES-GCM context" % (
-            _num(keys), _num(total), _num(total + mpk)),
-        "FAIL",
-        "the section's own byte counts are what break its conclusion: class-1 Cortex-M "
-        "parts have ~1.5-2 kB of SRAM, and this design's persistent state alone is %.1fx "
-        "that before any working memory. pqm4's published figures (RESULTS.md section 4) "
-        "price a single ML-DSA-44 signature on a Cortex-M4 at 3.9M-24.4M cycles depending on "
-        "the optimisation level, with stack in the tens of kilobytes - so 'feasible on a "
-        "class-2 M4 with 48 kB' is the supportable statement, and even there the handshake's "
-        "two signatures dominate. %.0f%% of the SRAM budget of a class-1 part is spent on "
-        "keys that exist only because of the identity-based layer." % (
-            total / 2048.0, 100.0 * usk / 2048.0))
+        "add up what a node must hold in RAM (identity key, KEM public key, KRA, session state, "
+        "group public key) against the budget the amended section names, and read the handshake "
+        "cost from pqm4",
+        "4116 B against a 48 kB budget",
+        "%s B of key material, %s B with the session state, %s B once the group public key the "
+        "verifier must hold is counted - %.1f%% of a 48 kB budget, before code, stack, the NTT "
+        "working buffers or the AES-GCM context" % (
+            _num(keys), _num(total), _num(with_mpk), 100.0 * with_mpk / AMENDED["sram_budget_bytes"]),
+        "PASS" if ok else "FAIL",
+        "the section's conclusion used to read 'less than 2.0 kB, therefore runnable on class-1 "
+        "Cortex-M0/M3 parts'. Its own byte counts refuse that: the persistent state alone is "
+        "1.25x a 2 kB budget before a single byte of working memory, and pqm4 prices a full "
+        "ML-KEM-512 + ML-DSA-44 handshake at about 498 ms on a Cortex-M4 with a refresh at 50.5 "
+        "ms, so the amended text names the M4 class and states that the two phase-one signatures "
+        "dominate; class-1 nodes stay on the ch.4-6 layer-1 profile, which stops after the KEM.")
 
 
 TESTS = [e1_setup_overhead_light_tier, e2_setup_overhead_proposed_tier,

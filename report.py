@@ -90,7 +90,9 @@ MODEL_NOTES = [
                       "exactly as eq 5-6 defines it"),
     ("pqake_ratchet_kra", "phases 2-3, StateReveal of the state as eq 5-5 literally stores "
                           "it, i.e. with KRA inside"),
-    ("pqake_ratchet_minstate", "phases 2-3, the fix: scrape the chain keys but not RK"),
+    ("pqake_ratchet_prk", "phases 2-3, the applied F5 fix: eq 4-31..4-33 seed each refreshed "
+                          "epoch's chain keys from PRK_e instead of the stored RK"),
+    ("pqake_ratchet_minstate", "phases 2-3, the alternative fix: scrape the chain keys but not RK"),
     ("limitation_table_else", "minimal reproduction of the tool limitation, not a protocol "
                               "claim: ProVerif cannot use a table read's negative branch "
                               "to prove injectivity"),
@@ -537,6 +539,12 @@ Five results from the harness and the symbolic models that change what chapter 5
 Each is reproducible with `python run_claims.py` plus `sh model/run_model.sh` (single-test
 commands given below).
 
+Two of them (F2, F5) were defects in the protocol as written and are **fixed in this work**:
+the fix is in ch.4/ch.5 of the thesis and in the reference implementation, and the tests now
+pass. The other three are not fixed by a text change - F1 and F4 need a different signature
+scheme or a different phase-1 framing, and F3 is closed by moving storage out of the session
+state, so in the thesis they are stated as scoped claims or as platform requirements.
+
 ## F1 - the identity-based signature as specified leaks the PKG master key (critical)
 
 ch.4-4 defines the master public key as `t = A*s1 + s2` and the identity key as
@@ -564,8 +572,13 @@ forgeable by every participating node.
   signs `H(pk_id)` instead of dividing by `h`), which keeps every other equation of ch.4
   unchanged and removes the escrow of 5-2-8 at the same time; (c) keep "certificateless"
   with a partial private key that is *not* a scalar multiple of `s1`.
+* Status in the thesis: the GPV option is what ch.6 now lists as future work, so ch.5's phase-1
+  authentication claim is scoped in this text to "authenticates the node that holds the issued
+  key, assuming the PKG's extraction is not reversed" rather than stated as unforgeable. The
+  `claims.json` record stays CONFIRMED-VULNERABLE because the scheme as specified is the one
+  tested.
 
-## F2 - the responder never checks NA freshness, so a replayed M1 opens a phantom session
+## F2 - the responder never checked NA freshness, so a replayed M1 opened a phantom session (fixed here)
 
 M1 = (IDA, IDB, pkAe, NA, sigma_A) is bound by the signature but nothing at B tells B that
 this NA was chosen now. Replaying a long-consumed M1 to a fresh responder instance makes B
@@ -577,9 +590,14 @@ finalize). The AKE "matching sessions" property therefore fails.
 * Impact: log/audit integrity (a node records an authenticated session that never happened),
   state-exhaustion on a constrained node, and a wrong foundation for the replay claim in
   5-2-3. No key is leaked.
-* Fix: bind B's reply to freshness B can prove - e.g. include a B-chosen ephemeral KEM
-  contribution (see F4) and/or have A sign NB into a MAC that B must see returned before it
-  commits state; a timestamp/counter window on NA also closes it.
+* **Applied fix** (now eq 4-6a in ch.4-3): each node keeps a set `Seen(IDB)` of the nonces it
+  has already answered for that peer and refuses `NA` that is in it, so a replayed M1 reaches
+  a fresh responder and is rejected. Test a5 passes with the check in place.
+* Symbolic check: `model/pqake_replay_fixed.pv` proves `event(acceptB) ==> event(startA)`
+  (agreement, so every B session pairs with an A that began it) and the injective
+  `doneB ==> doneA`; ProVerif leaves `injective event(acceptB) ==> event(startA)` undecided
+  because the fold that remembers `NA` sits in the table's negative branch, which is outside
+  its fragment - recorded in RESULTS.md section 7.2, not claimed as a proof.
 
 ## F3 - the documented internal state contradicts the PCS claim
 
@@ -601,6 +619,10 @@ honest peer A is left out of step (its next refresh aborts).
   in the RAM the state table describes), or restore an authenticated (signed) refresh, or
   bind the refresh to a per-epoch MAC key that is ratcheted forward and never stored
   alongside RK.
+* Status in the thesis: ch.5-3 eq 5-5 now carries that storage requirement explicitly (KRA is
+  excluded from the session state and named as an OTP / secure-element item), so the claim is
+  conditioned on the platform instead of contradicted by the state table. It stays in
+  `claims.json` as DOCUMENTED-LIMITATION because nothing here proves the platform honours it.
 
 ## F4 - one ephemeral reveal is enough to break the session key (eCK)
 
@@ -617,8 +639,12 @@ gives the attacker ss0, hence PRK0, hence Ksess, RK, KRA and both chains.
 * Fix: make B also generate an ephemeral KEM keypair, encapsulate in both directions and set
   `ss0 = ss0_A || ss0_B` (or add a second HKDF stage). The extra cost is one keygen + one
   encaps + one decaps per session, ~%.0f%% of the current phase-1 compute.
+* Status in the thesis: the eCK-style claim of ch.5-2 is narrowed to the ratcheted sessions
+  the harness supports and this gap is listed as future work in ch.6; the double-encapsulation
+  fix is named but not adopted, so the numbers in ch.5 still describe the framing that was
+  measured.
 
-## F5 - within-epoch forward secrecy fails for the state table as written
+## F5 - within-epoch forward secrecy failed for the state table as written (fixed here)
 
 Found by the symbolic model, not by the harness.
 
@@ -637,12 +663,19 @@ the scrape, inside the scraped epoch) while the same model does **not** reach `p
   (forward-only from the leaked chain key), which is weaker than the state the model exposes.
   `RootState` is the faithful one. The epoch-0 chains escape it only because eq 4-18/4-19
   derive them from `PRK0` rather than from `RK` (test b2: RK-aware attacker gets 0/5 there).
-* Fix, verified: scrape without `RK`. `pqake_ratchet_minstate.pv` is the same ratchet with
-  `{CK_send, CK_recv, e, counters, TH}` exposed and `RK` withheld - all four statements come
-  out true (`pt10`, `pt20`, `pt30`, `kra`). Since eq 4-31 needs `RK` to compute the next root
-  key it cannot simply be deleted; it has to live outside the region the exposure oracle
-  models, which is a platform-isolation requirement, not a KDF change. Note this is the same
-  shape of fix as F3, and eq 5-5/5-6 are where both are written down.
+* **Applied fix** (now eq 4-31..4-33 in ch.4-6 and the state tables of ch.5-3): a refresh
+  derives an intermediate `PRK_e` and seeds the epoch's chain keys from `PRK_e`, not from the
+  stored `RK`, so the state table no longer contains the material an attacker needs to walk
+  the epoch backwards. Test b8 passes; `model/pqake_ratchet_prk.pv` (same exposure set as the
+  failing model, chains seeded from `PRK_e`) proves all four statements - `pt10`, `pt20`,
+  `pt30`, `kra` - while the original layout still falsifies `pt20`.
+* Second, equivalent route, kept as the comparison: withholding `RK` from the exposure region
+  gives the same result (`pqake_ratchet_minstate.pv`, all four true). It is a platform
+  isolation requirement rather than a KDF change, since eq 4-31 still needs `RK` to compute
+  the next root key. The thesis documents both; the applied one is the `PRK_e` seeding because
+  it holds without assuming an unreadable memory region.
+* Same shape as F3: both are about *where* the state table says to keep a secret. eq 5-5/5-6
+  are where each is written down, and both are amended.
 
 ## What the harness could not do here
 
@@ -658,22 +691,25 @@ the scrape, inside the scraped epoch) while the same model does **not** reach `p
 
 
 def efficiency_findings(claims):
-    """The overhead claims (ch.5-4..5-7) that did not reproduce, generated from the same
-    records as RESULTS.md section 2 so the two cannot drift apart."""
+    """The overhead claims of ch.5-4..5-7: what the thesis first stated, what the harness
+    measured, and the verdict against the amended text - generated from the same records as
+    RESULTS.md section 2 so the two cannot drift apart."""
     recs = [c for c in claims["results"] if c["test"].startswith("e")]
     if not recs:
         return ""
     bad = [c for c in recs if c["verdict"] == "FAIL"]
     good = [c for c in recs if c["verdict"] != "FAIL"]
     lines = ["## E - the efficiency claims of ch.5-4..5-7 (measured)", "",
-             "The thesis derives its overhead figures analytically and never measures them. "
-             "The reference implementation reproduces the *arithmetic* of every equation "
-             "where the inputs are the ones the thesis assumes, and does not reproduce the "
-             "figures where the inputs are the ones the design actually produces. %d of the "
-             "%d quantitative claims tested here do not survive that distinction; the files "
-             "are `lab/efficiency.py` and, in the tables, RESULTS.md section 2." % (
-                 len(bad), len(recs)), "",
-             "| claim | what the thesis states | what the implementation produces | verdict |",
+             "The thesis first derived its overhead figures analytically and never measured "
+             "them. The reference implementation reproduces the *arithmetic* of every equation "
+             "where the inputs are the ones the thesis assumes, and not the figures where the "
+             "inputs are the ones the design actually produces. That distinction is what "
+             "changed the text: %d of the %d quantitative claims now read as measured and "
+             "reproduce%s; the columns below keep the pre-measurement figure next to the one "
+             "now in the thesis, so the correction is auditable. See RESULTS.md section 2 for "
+             "the same rows." % (
+                 len(good), len(recs), "" if not bad else " and %d do not" % len(bad)), "",
+             "| claim | what the thesis stated | what the implementation produces | verdict |",
              "|---|---|---|---|"]
     for c in recs:
         lines.append("| %s | %s | %s | %s |" % (

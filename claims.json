@@ -1,7 +1,7 @@
 {
- "generated": "2026-10-21 09:50:05",
+ "generated": "2026-10-21 13:37:30",
  "python": "3.11.9",
- "seconds": 9.6,
+ "seconds": 9.5,
  "results": [
   {
    "claim": "5-2-1 mutual authentication / 5-2-2 session-key confidentiality",
@@ -12,7 +12,7 @@
    "verdict": "PASS",
    "note": "",
    "test": "a1_mutual_auth",
-   "seconds": 0.106
+   "seconds": 0.543
   },
   {
    "claim": "5-2-1 authentication of the initiator (MITM cannot substitute pkAe)",
@@ -23,7 +23,7 @@
    "verdict": "PASS",
    "note": "",
    "test": "a2_forger_no_key",
-   "seconds": 0.376
+   "seconds": 0.677
   },
   {
    "claim": "5-2-5 impersonation using another node's identity key",
@@ -34,7 +34,7 @@
    "verdict": "PASS",
    "note": "the authenticated id is carried in the transcript, so B's peer field is C",
    "test": "a3_third_party_key",
-   "seconds": 0.959
+   "seconds": 0.448
   },
   {
    "claim": "5-2-4 unknown key-share (UKS)",
@@ -45,18 +45,18 @@
    "verdict": "PASS",
    "note": "",
    "test": "a4_uks",
-   "seconds": 0.411
+   "seconds": 0.256
   },
   {
    "claim": "5-2-3 replay resistance of the handshake",
    "model": "Dolev-Yao",
    "procedure": "replay an already-consumed M1 to a fresh responder instance of B's identity, then hand the resulting M2 back to the original initiator",
    "expected": "responder rejects a replayed handshake; sessions must match",
-   "observed": "fresh B accepted the stale M1 = True; A aborted: no pending handshake: skAe was already erased (eq 4-37); B2 believes it shares a session with A (matching sessions = False, A's Ksess unchanged = True)",
-   "verdict": "FAIL",
-   "note": "B never checks NA for freshness, so a responder can be made to complete a session with an initiator that is not participating: the AKE matching-sessions property fails and an attacker gets phantom sessions attributed to a victim (log/audit integrity, resource exhaustion). Erasure of skAe stops the session from also capturing the initiator's side. Fix: FINDINGS.md F2",
+   "observed": "fresh B accepted the stale M1 = False; None; B2 believes it shares a session with A (matching sessions = n/a, A's Ksess unchanged = n/a)",
+   "verdict": "PASS",
+   "note": "with the responder-side freshness rule of eq 4-6a in place - every NA it has answered is recorded for the node, and a repeated NA aborts before any key is derived - the stale M1 is refused by a fresh instance of the same identity, so no phantom session is attributed to the victim. This is the repair that closes F2; without the rule the same probe was accepted.",
    "test": "a5_replay_m1",
-   "seconds": 0.384
+   "seconds": 0.538
   },
   {
    "claim": "5-2-3 replay resistance of the ratchet layer",
@@ -67,7 +67,7 @@
    "verdict": "PASS",
    "note": "skip-ahead is supported (keys for skipped indices are derived then erased), step-back is not - the price of eq 4-37 erasure",
    "test": "a6_message_replay",
-   "seconds": 0.245
+   "seconds": 0.322
   },
   {
    "claim": "5-2-1 MITM: substituting handshake parameters",
@@ -78,18 +78,18 @@
    "verdict": "PASS",
    "note": "pkAe is inside sigma_A (eq 4-4/4-5), so any substitution breaks verification",
    "test": "a7_mitm_relay",
-   "seconds": 0.183
+   "seconds": 0.316
   },
   {
    "claim": "5-2-6 forward secrecy (PFS) across epochs",
    "model": "ACCE StateReveal",
    "procedure": "after 2 refreshes / 10 messages, leak B's {RK, CKs, CKr, epoch, TH} and try every recorded ciphertext, split by whether it predates the refresh the leaked state belongs to",
    "expected": "0 of the 7 messages of earlier epochs openable",
-   "observed": "0/7 from earlier epochs open, 3/3 from the leaked epoch itself",
+   "observed": "0/7 from earlier epochs open, 0/3 from the leaked epoch itself",
    "verdict": "PASS",
    "note": "cross-epoch PFS holds: rootKdf(RK_{e-1}, ss_e) (eq 4-31) is one-way and ss_e is a KEM secret the adversary cannot decapsulate. The messages of the leaked epoch are a separate claim - see b8",
    "test": "b1_pfs_across_epochs",
-   "seconds": 0.325
+   "seconds": 0.209
   },
   {
    "claim": "5-2-6 forward secrecy inside one epoch (epoch 0)",
@@ -98,20 +98,20 @@
    "expected": "past unreadable; future readable until the next asymmetric refresh",
    "observed": "chain-only: past 0/5, future 3/3  |  RK-aware: past 0/5, future 0/3",
    "verdict": "DOCUMENTED-LIMITATION",
-   "note": "epoch 0 survives the RK-aware attacker because its chains are the CKA/CKB leaves of PRK0 (eq 4-18/4-19) rather than functions of RK; a symmetric chain still leaks forward from the exposure point until the KEM refresh repairs it, which is why the design is a dual ratchet. Refreshed epochs behave differently - see b8",
+   "note": "a symmetric chain still leaks forward from the exposure point until the KEM refresh repairs it, which is why the design is a dual ratchet; the RK side of the same scrape is closed for every epoch, including this one, because the chains are PRK leaves (eq 4-18/4-19 here, eq 4-32/4-33 after the amendment) rather than functions of the stored root key. Refreshed epochs behave the same way - see b8",
    "test": "b2_within_epoch",
-   "seconds": 0.124
+   "seconds": 0.157
   },
   {
    "claim": "5-2-6 forward secrecy inside the epoch that was scraped",
    "model": "ACCE StateReveal(message_state), eq 5-6 read literally",
    "procedure": "run 5 messages in epoch 1, scrape B's message_state (which contains RK per eq 5-6), then re-derive the epoch's initial chain key per eq 4-32",
    "expected": "past messages of the epoch unreadable once their chain keys are erased (eq 4-37)",
-   "observed": "chain-only attacker: past 0/5 | RK attacker: past 5/5, future 3/3, other epochs 0/3",
-   "verdict": "FAIL",
-   "note": "eq 4-32 derives CK^send_1 = HKDF(RK, 'SendKeys'||e||TH), so a scrape that carries RK re-derives every message key of that epoch backwards and forwards; erasure only helps if RK is outside the scrape set. ProVerif agrees: pqake_ratchet.pv reaches pt20 from the scrape, and pqake_ratchet_minstate.pv, which scrapes without RK, does not",
+   "observed": "chain-only attacker: past 0/5 | RK attacker: past 0/5, future 0/3, other epochs 0/3",
+   "verdict": "PASS",
+   "note": "eq 4-32/4-33 now seed the epoch's chains from PRK_e, the HKDF-Extract output of eq 4-31, while the stored RK is a sibling branch of the same extract; a scrape therefore cannot rebuild the epoch backwards, and the erasure of eq 4-37 is what bounds the damage. Residual, and stated as such: the same scrape still carries the live chain key, so messages after the exposure point of that epoch stay readable until the next asymmetric refresh repairs the root. This is the repair that closes F5.",
    "test": "b8_within_refreshed_epoch",
-   "seconds": 0.383
+   "seconds": 0.321
   },
   {
    "claim": "5-2-6 post-compromise security (recovery)",
@@ -122,7 +122,7 @@
    "verdict": "PASS",
    "note": "conditional PCS: relies on a fresh sse the attacker cannot decapsulate",
    "test": "b3_pcs_recovery",
-   "seconds": 0.399
+   "seconds": 0.48
   },
   {
    "claim": "5-2-6 'exposure of the symmetric keys does not expose KRA'",
@@ -133,7 +133,7 @@
    "verdict": "PASS",
    "note": "this is the assumption the thesis rests on for refresh authenticity",
    "test": "b4_kra_not_reachable_from_state",
-   "seconds": 0.64
+   "seconds": 0.12
   },
   {
    "claim": "5-2-6 / 5-3-2 PCS under the documented internal state StAL1",
@@ -144,7 +144,7 @@
    "verdict": "CONFIRMED-VULNERABLE",
    "note": "the state model and the security claim contradict each other. Fix: keep KRA out of the scrapeable session state (secure element), or sign refreshes; see FINDINGS.md F3",
    "test": "b5_pcs_breaks_if_kra_is_stored",
-   "seconds": 0.858
+   "seconds": 0.247
   },
   {
    "claim": "5-2-2 session-key confidentiality under ephemeral reveal (eCK)",
@@ -155,7 +155,7 @@
    "verdict": "CONFIRMED-VULNERABLE",
    "note": "phase 1 binds ss0 to a single ephemeral contribution; NB is a plaintext salt. Fix: encapsulate to a responder KEM key as well and mix both secrets; see F4",
    "test": "b6_ephemeral_reveal",
-   "seconds": 0.72
+   "seconds": 0.703
   },
   {
    "claim": "5-2-6 repair after ephemeral compromise",
@@ -166,7 +166,7 @@
    "verdict": "PASS",
    "note": "the ratchet limits the damage window of an ephemeral reveal to one epoch",
    "test": "b6_ephemeral_reveal",
-   "seconds": 0.72
+   "seconds": 0.703
   },
   {
    "claim": "recovery requires a *successful* refresh (stated assumption, ch.4-9)",
@@ -177,7 +177,7 @@
    "verdict": "DOCUMENTED-LIMITATION",
    "note": "the thesis explicitly disclaims PCS against a persistent active attacker",
    "test": "b7_refresh_dos",
-   "seconds": 0.199
+   "seconds": 0.529
   },
   {
    "claim": "5-2-7 quantum resistance (no classical assumption on the wire)",
@@ -199,7 +199,7 @@
    "verdict": "CONFIRMED-VULNERABLE",
    "note": "the homomorphic (certificateless-style) key derivation usk_id = h*s1 is the leak: s1 is the PKG master secret and every node holds it. A GPV-style trapdoor derivation is required. See FINDINGS.md F1",
    "test": "c2_ibshomomorphic_identity_key_is_insecure",
-   "seconds": 0.823
+   "seconds": 0.838
   },
   {
    "claim": "5-2-8 key escrow is inherent to IBS (stated limitation)",
@@ -210,60 +210,60 @@
    "verdict": "DOCUMENTED-LIMITATION",
    "note": "distinct from F1: escrow needs the MSK, F1 needs only one issued key",
    "test": "d1_pkg_can_impersonate",
-   "seconds": 0.456
+   "seconds": 0.206
   },
   {
-   "claim": "5-4-1 eq (11-5): the setup phase costs 2296 B in the light tier (|sigma| = 300 B)",
+   "claim": "5-4-1 eq (11-5): the light tier's setup phase costs 5594 B, with |sigma| = 1964 B and a 1666 B non-signature term",
    "model": "byte accounting of the reference implementation",
-   "procedure": "rebuild eq (11-5) from the fields the reference code actually serialises (M1 + M2), separate the metadata term from the two signatures, then substitute both the thesis' 300 B signature and the one ch.4-4's parameters produce",
-   "expected": "2296 B",
-   "observed": "metadata term = 1,666 B; with |sigma| = 300 B the same layout gives 2,266 B (the thesis says 2,296 B, so the arithmetic reproduces to within the 30 B metadata constant); ch.4-4's parameters give |sigma| = 1,964 B, so the setup phase the reference code sends is 5,594 B",
-   "verdict": "FAIL",
-   "note": "the equation is right and the tier is not: the 300 B signature it assumes cannot come from this scheme, whose commitment alone is 428 B (w at 6 bit/coeff = 384 B, plus the weight-39 challenge vector = 44 B) before a single response coefficient is sent. The light tier is the one table 5-3 and section 5-7 compare with the competitors, so the measured setup is 2.4x the figure the comparison uses.",
-   "test": "e1_setup_overhead_light_tier",
-   "seconds": 0.456
-  },
-  {
-   "claim": "5-4-1: the setup phase costs 6496 B in the proposed tier (|sigma| = 2400 B)",
-   "model": "byte accounting of the reference implementation",
-   "procedure": "the same reconstruction with the 2400 B signature of the 'high security' tier, and again substituting a real ML-DSA-44 signature (2420 B) instead of the IBS",
-   "expected": "6496 B",
-   "observed": "with |sigma| = 2400 B the layout gives 6,466 B (0.46% from the claim, the same 30 B metadata constant as eq 11-5); with an actual ML-DSA-44 signature the reference code would send 6,506 B; with the IBS of ch.4-4 it sends 5,594 B",
+   "procedure": "rebuild eq (11-5) from the fields the reference code actually serialises (M1 + M2), separate the metadata term from the two signatures, and check the three numbers the amended section now prints",
+   "expected": "5594 B",
+   "observed": "metadata + KEM material = 1,666 B, |sigma| = 1,964 B, setup phase on the wire = 5,594 B",
    "verdict": "PASS",
-   "note": "the thesis' arithmetic survives at this tier - which is the honest reading: the 6496 B row is what you get by *replacing* the identity-based signature with a standard one. Combined with e1, the two tiers the thesis prices are 300 B and 2400 B signatures, and the scheme it designs produces neither (1,964 B).",
+   "note": "this row used to claim 2296 B at |sigma| = 300 B. Two corrections: the arithmetic constant is 1666 B, not the 1696 B the old substitution implied, and no 300 B signature comes out of ch.4-4 - the commitment (384 B at 6 bit/coeff) and the weight-39 challenge vector (44 B) already exceed 300 B before a response coefficient is sent, so the tier is priced with the signature the parameters actually produce. The equation itself is unchanged.",
+   "test": "e1_setup_overhead_light_tier",
+   "seconds": 0.601
+  },
+  {
+   "claim": "5-4-1: the proposed tier's setup phase costs 6506 B, i.e. 1666 B of material plus two 2420 B ML-DSA-44 signatures",
+   "model": "byte accounting of the reference implementation",
+   "procedure": "the same reconstruction, substituting the standard signature the high tier names instead of an IBS of the same width",
+   "expected": "6506 B",
+   "observed": "with |sigma| = 2,420 B the layout gives 6,506 B; the identity-based signature of ch.4-4 would give 5,594 B",
+   "verdict": "PASS",
+   "note": "the old row said 6496 B at |sigma| = 2400 B. The thesis' arithmetic was 30 B off the metadata constant and the 2400 B signature is not a published size either; the tier now names ML-DSA-44 (2420 B) and the total follows.",
    "test": "e2_setup_overhead_proposed_tier",
    "seconds": 0.0
   },
   {
-   "claim": "5-4-1 / table 5-3: per-message communication overhead is 16 B (a fixed MAC)",
+   "claim": "5-4-1 eq (12-5) / table 5-3: a normal message costs 109 B of framing over its payload (epoch 4 + counter 8 + nonce 12 + bound context 69 + tag 16)",
    "model": "byte accounting of the reference implementation",
    "procedure": "serialise one ratchet-layer data message exactly as the reference code does and split the transmitted framing from the payload",
-   "expected": "16 B",
+   "expected": "109 B",
    "observed": "141 B on the wire for a 32 B payload = 109 B of framing: epoch 4 + counter 8 + nonce 12 + associated data 69 + ciphertext+tag 48",
-   "verdict": "FAIL",
-   "note": "the 16 B row counts the AEAD tag alone. A message that also carries what eq 4-34..4-36 requires - the epoch and message counters for key skipping, the AES-GCM nonce, and the AD that binds the message to (IDA, IDB, e, j, TH) - costs 109 B, i.e. 6.8x the table's figure. On 802.15.4 (127 B MACU) that is the difference between one frame and two.",
+   "verdict": "PASS",
+   "note": "the row read 16 B, which is the AEAD tag on its own. Eq 4-34..4-36 also put the epoch and message counters (needed for key skipping), the AES-GCM nonce and the AD that binds the message to (IDA, IDB, e, j, TH) on the wire; the amended figure counts all of it. On 802.15.4 with a 127 B MAC payload the difference between 16 B and 109 B of framing is the difference between one frame and two, so the section states it as two.",
    "test": "e3_per_message_overhead",
    "seconds": 0.0
   },
   {
-   "claim": "5-4-1 / tables 5-2 and 5-3: the asymmetric refresh costs 816 B + 784 B = 1600 B",
+   "claim": "5-4-1 eq (13-5) / tables 5-2 and 5-3: the asymmetric refresh costs 897 B + 865 B = 1762 B round trip",
    "model": "byte accounting of the reference implementation",
-   "procedure": "measure both refresh legs as the reference code emits them, and account for every byte the thesis' 800+16 / 768+16 arithmetic omits",
-   "expected": "816 B (A) + 784 B (B) = 1600 B",
-   "observed": "A = 897 B (epoch 4 + AD 61 + pk 800 + MAC 32), B = 865 B (epoch 4 + AD 61 + ct 768 + MAC 32) = 1,762 B round trip, +81 B per leg",
-   "verdict": "FAIL",
-   "note": "the thesis counts only the KEM material and a 16 B MAC. Eq 4-25/4-26 additionally put a 61 B epoch-binding context (AD = IDA||IDB||e||TH) and a 4 B epoch number on the wire, and the design's lambda = 256 makes the MAC 32 B not 16 B: 61 + 4 + 16 = 81 B on each leg. Table 5-3's PCS row should read 1,762 B.",
+   "procedure": "measure both refresh legs as the reference code emits them and account for the epoch number, the 61 B binding context and the lambda = 256 MAC that the KEM-only arithmetic leaves out",
+   "expected": "1762 B",
+   "observed": "A = 897 B (epoch 4 + AD 61 + pk 800 + MAC 32), B = 865 B (epoch 4 + AD 61 + ct 768 + MAC 32) = 1,762 B round trip",
+   "verdict": "PASS",
+   "note": "the old figure was 816 + 784 = 1600 B: the KEM material plus a 16 B MAC. Eq 4-25/4-26 add a 61 B epoch-binding context and a 4 B epoch number to each leg, and lambda = 256 makes the MAC 32 B rather than 16 B - 81 B per leg, 162 B over the round trip.",
    "test": "e4_refresh_and_pcs_overhead",
    "seconds": 0.0
   },
   {
-   "claim": "5-7 / table 5-3: 'the proposed scheme, in its light parameters (2296 B), performs better than [8]' (PiLike 3860 B, AKAME 4160 B)",
+   "claim": "5-7 / table 5-3: the light tier's setup phase (5594 B) is above PiLike [8] (3860 B) and AKAME [4] (4160 B), and the design's advantage is the cumulative one of e6",
    "model": "byte accounting of the reference implementation",
-   "procedure": "put the measured handshake of this design on the same footing as the competitor figures quoted in table 5-3",
-   "expected": "proposed below 3860 B and below 4160 B",
-   "observed": "measured 5,594 B = +45% against PiLike [8] (3,860 B) and +34% against AKAME [4] (4,160 B). The claimed ordering holds only at |sigma| = 300 B, where the same layout gives 2,266 B",
-   "verdict": "FAIL",
-   "note": "the thesis' headline efficiency comparison inverts under measurement: as specified, the design is heavier at setup than both schemes it claims to beat. It earns the difference back on the later legs, which table 5-3 does not price - neither competitor has a ratchet ('requires re-running the key agreement' is in the same table) - so the defensible version of this claim is the cumulative one in e6.",
+   "procedure": "put the measured handshake of this design on the same footing as the competitor figures quoted in table 5-3 and check the ordering the amended row states",
+   "expected": "heavier at setup, lighter per message",
+   "observed": "measured 5,594 B = +45% against PiLike [8] (3,860 B) and +34% against AKAME [4] (4,160 B)",
+   "verdict": "PASS",
+   "note": "the row used to claim the opposite ordering, at 2296 B. The single-phase comparison genuinely goes against this design once the signature it actually produces is priced; what it wins is every later leg, which neither competitor has (the same table says they 'require re-running the key agreement'), so the comparison is stated per phase and summed in e6 rather than claimed in one snapshot.",
    "test": "e5_comparison_with_other_schemes",
    "seconds": 0.0
   },
@@ -279,24 +279,24 @@
    "seconds": 0.0
   },
   {
-   "claim": "5-5: long-term key memory is 1856 B (usk ~1024 B + reference public key ~800 B + KRA 32 B)",
+   "claim": "5-5: long-term key memory is 2368 B (usk_id 1536 B + KEM public key 800 B + KRA 32 B) and 3936 B once the group public key a verifier must hold is counted",
    "model": "byte accounting of the reference implementation",
    "procedure": "measure the identity key and the group public key ch.4-4's parameters actually produce, then add the 800 B KEM public key and the 32 B KRA the thesis lists",
-   "expected": "1856 B",
-   "observed": "usk = 1,536 B (L=2 vectors of n=256 coefficients at 3 B = 2*256*3), so own key + KEM pk + KRA = 2,368 B; a verifier must additionally hold the group public key mpk = 1,568 B, giving 3,936 B. The 800 B term is correct: ML-KEM-512's encapsulation key measures 800 B.",
-   "verdict": "FAIL",
-   "note": "the thesis' 1024 B is neither a packed Dilithium-style secret (which is seed-sized, 32 B) nor this scheme's expanded key (1536 B): 1536 B is 512 B more, and if the group public key is counted - it must be, or nothing verifies - the long-term total is 3936 B, i.e. the section's '<2.0 kB' node budget is spent before any session state.",
+   "expected": "2368 B / 3936 B",
+   "observed": "usk = 1,536 B (L=2 vectors of n=256 coefficients at 3 B = 2*256*3), own key + KEM pk + KRA = 2,368 B, plus mpk = 1,568 B gives 3,936 B",
+   "verdict": "PASS",
+   "note": "the section said 1856 B, built on a 1024 B identity key. Ch.4-4's expansion is L vectors of n coefficients, 3 B per coefficient, so 1536 B; and the group public key was not counted at all although every Verify needs it. The 800 B KEM term was right.",
    "test": "e7_longterm_memory",
-   "seconds": 0.571
+   "seconds": 0.316
   },
   {
-   "claim": "5-5: the ratchet layer needs 104 B of live session state (RK + CKs + CKr + 8 B of counters)",
+   "claim": "5-5: the double ratchet needs 180 B of live session state, 212 B if KRA is kept in RAM alongside it",
    "model": "byte accounting of the reference implementation",
    "procedure": "count everything a running session must keep in order to send, receive, skip ahead and authenticate a refresh, per eq 4-11..4-36",
-   "expected": "104 B",
-   "observed": "180 B as implemented, 212 B with KRA in RAM (which eq 5-5's StAL1 requires). The extra 76 B is TH (32, required by eq 4-25 and 4-36), the epoch number (4), two counters instead of one (8 + 8) and the key-confirmation material",
-   "verdict": "FAIL",
-   "note": "104 B is reachable only by dropping the transcript binding, and that binding is what makes eq 4-26's refresh authentication and the UKS resistance of 5-2-4 work. The honest figure for the protocol as specified is 180 B - still trivial for a Cortex-M4 with 48 kB of SRAM, and not compatible with the 'class 1' framing of the same section (see e13).",
+   "expected": "180 B / 212 B",
+   "observed": "180 B as implemented, 212 B with KRA in RAM. The state is RK, CK^send, CK^recv, TH, the epoch number, both message counters and the received-index set",
+   "verdict": "PASS",
+   "note": "104 B is reachable only by dropping the transcript binding, and that binding is what makes eq 4-26's refresh authentication and the UKS resistance of 5-2-4 work. The amended figure also states the KRA rule of 5-2-6: KRA belongs to the long-term key store, and the 212 B figure is what a node pays if it keeps it in the session state instead - which is exactly the exposure eq 5-5 documents.",
    "test": "e8_ratchet_state_memory",
    "seconds": 0.0
   },
@@ -309,7 +309,7 @@
    "verdict": "PASS",
    "note": "the sets are exactly as table 5-2 says, and the asymmetry it implies is real but small: signing is 77% of A's priced phase-1 cost and 81% of B's, so the extra keygen that makes A 'heavier' moves the total by 5.1%. The only lever this table leaves is A's ephemeral keygen (245,137 cycles), which an idle initiator could generate in advance; the responder already does no keygen.",
    "test": "e9_role_operation_sets",
-   "seconds": 0.493
+   "seconds": 0.356
   },
   {
    "claim": "5-4-2 eq (16-5) / table 5-4: a normal message performs no asymmetric operation, reducing the cost from matrix multiplication to a constant KDF cost",
@@ -320,7 +320,7 @@
    "verdict": "PASS",
    "note": "the design's strongest measured property, and it holds exactly: a message pair is 4 HKDF-Expand + 1 hash + 2 AEAD contexts and nothing else (the HMAC column counts the PRF calls the KDF makes internally, one per expansion, so it is not additional work). Two caveats worth stating in the thesis: the 'constant' KDF cost is per message and per direction - 4 expansions, not the 2 that eq 4-34/4-35 suggest read one-way - and AES-256-GCM is not the lightweight choice the framing implies, since a hardware-less M0 has to run it in software.",
    "test": "e10_no_asymmetric_work_per_message",
-   "seconds": 0.169
+   "seconds": 0.646
   },
   {
    "claim": "5-4-2 eq (17-5) / table 5-2: the asymmetric refresh removes Sign/Verify and costs one KEM triple plus HMACs",
@@ -331,27 +331,27 @@
    "verdict": "PASS",
    "note": "confirmed, and it is why the amortisation of section 5-4-2 works: a refresh is 638,719 cycles of KEM where a re-handshake would be 4,415,331 cycles. Of the 12 HMAC calls, 6 are the PRF inside the 6 HKDF-Expand invocations and 6 are the explicit eq 4-26/4-29 refresh tags - the MACs that replace the signatures. F3 (RESULTS.md, claim 17) shows what that trade costs if KRA is left in the state an attacker can scrape.",
    "test": "e11_no_signature_in_refresh",
-   "seconds": 0.302
+   "seconds": 0.666
   },
   {
-   "claim": "5-7 / table 5-4: moving the IBS into phase 1 is affordable because a rank-2 identity-based signature is cheap",
+   "claim": "5-7 / table 5-4: the rank-2 identity-based signature costs 72% of ML-DSA-44 for key generation and 69% for verification, but 148% for signing - the handshake is cheaper with a standard signature",
    "model": "native cycles (c/ibs.c on the Dilithium ring vs the Dilithium-2 reference)",
-   "procedure": "compare measured mean cycles of one accepted signature and of one verification, on the same ring (n=256, q=8380417), same machine, with message-varying rejection loops in both",
-   "expected": "K=L=2 should undercut K=L=4 (Dilithium-2) across the board",
-   "observed": "sign 1,734,538 cycles = 148% of a Dilithium-2 signature (1,168,306); verify 153,768 = 69% of Dilithium-2's; keygen 265,095 = 72% of Dilithium-2's",
-   "verdict": "FAIL",
-   "note": "keygen and verify win exactly as the dimension argument predicts; sign loses, because beta = (tau-1)*W_H*eta+1 = 609 against Dilithium's 78 puts the per-attempt acceptance at 0.037 instead of 0.432, i.e. 26.7 rejection attempts per signature against 2.3. The cost is in the homomorphic key derivation, not the ring, so any patch that keeps usk_id = h*s1 inherits it - which includes every fix that keeps the escrow property 5-2-8 concedes.",
+   "procedure": "compare measured mean cycles of one accepted signature, of one verification and of one key pair, on the same ring (n=256, q=8380417), same machine, with message-varying rejection loops in both",
+   "expected": "72% / 69% / 148% of ML-DSA-44",
+   "observed": "keygen 265,095 cycles = 72% of Dilithium-2's; verify 153,768 = 69%; sign 1,734,538 = 148% of a Dilithium-2 signature (1,168,306)",
+   "verdict": "PASS",
+   "note": "table 5-4 formerly argued that K = L = 2 makes the identity-based signature cheap enough to place in phase 1. The dimensional argument holds for keygen and verification and fails for signing: beta = (tau-1)*W_H*eta+1 = 609 against Dilithium's 78 puts the per-attempt acceptance at 0.037 instead of 0.432, i.e. 26.7 rejection attempts per signature against 2.3. The cost sits in the homomorphic key derivation, not in the ring, so any construction that keeps usk_id = h*s1 inherits it.",
    "test": "e12_signing_cost_claim",
    "seconds": 0.0
   },
   {
-   "claim": "5-5: the measured footprint ('less than 2.0 kB') makes the design runnable on resource-limited class-1 microcontrollers (ARM Cortex-M series)",
+   "claim": "5-5: the persistent footprint is 2548 B (4116 B with the group public key), which the section places on a Cortex-M4-class node with 48 kB of SRAM - not on a class-1 part",
    "model": "capacity arithmetic from the reference implementation + pqm4's published M4 figures",
-   "procedure": "add up what a node must hold in RAM (identity key, KEM public key, KRA, session state) against a class-1 budget, and note what the same section's algorithm needs for stack and working memory",
-   "expected": "node state + keys under 2048 B",
-   "observed": "2,368 B of key material, 2,548 B with the session state, 4,116 B once the group public key the verifier must hold is counted - and that is before code, stack, the NTT working buffers or the AES-GCM context",
-   "verdict": "FAIL",
-   "note": "the section's own byte counts are what break its conclusion: class-1 Cortex-M parts have ~1.5-2 kB of SRAM, and this design's persistent state alone is 1.2x that before any working memory. pqm4's published figures (RESULTS.md section 4) price a single ML-DSA-44 signature on a Cortex-M4 at 3.9M-24.4M cycles depending on the optimisation level, with stack in the tens of kilobytes - so 'feasible on a class-2 M4 with 48 kB' is the supportable statement, and even there the handshake's two signatures dominate. 75% of the SRAM budget of a class-1 part is spent on keys that exist only because of the identity-based layer.",
+   "procedure": "add up what a node must hold in RAM (identity key, KEM public key, KRA, session state, group public key) against the budget the amended section names, and read the handshake cost from pqm4",
+   "expected": "4116 B against a 48 kB budget",
+   "observed": "2,368 B of key material, 2,548 B with the session state, 4,116 B once the group public key the verifier must hold is counted - 8.4% of a 48 kB budget, before code, stack, the NTT working buffers or the AES-GCM context",
+   "verdict": "PASS",
+   "note": "the section's conclusion used to read 'less than 2.0 kB, therefore runnable on class-1 Cortex-M0/M3 parts'. Its own byte counts refuse that: the persistent state alone is 1.25x a 2 kB budget before a single byte of working memory, and pqm4 prices a full ML-KEM-512 + ML-DSA-44 handshake at about 498 ms on a Cortex-M4 with a refresh at 50.5 ms, so the amended text names the M4 class and states that the two phase-one signatures dominate; class-1 nodes stay on the ch.4-6 layer-1 profile, which stops after the KEM.",
    "test": "e13_class1_mcu_feasibility",
    "seconds": 0.0
   }

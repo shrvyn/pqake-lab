@@ -117,13 +117,16 @@ def pack_sig(sig):
 
 # ------------------------------------------------------------------- session
 class Session:
-    def __init__(self, identity, sk_id, role, mpk):
+    def __init__(self, identity, sk_id, role, mpk, replay_cache=None):
         self.id = identity
         self.sk_id = sk_id                  # long-term identity key, not "session state"
         self.mpk = mpk
         self.role = role                    # "initiator" | "responder"
         self.state = {}                     # what a message_state exposure reveals
         self.kra = None                     # refresh-authentication key
+        # F2 fix: NA freshness lives with the node, not with one session instance, so a
+        # replayed M1 is refused even when it reaches a fresh instance of the same identity.
+        self.seen_na = replay_cache if replay_cache is not None else set()
         self.epoch = 0
         self.tx = 0
         self.rx_j = 0
@@ -150,12 +153,16 @@ class Session:
         return dict(self.m1)
 
     def respond(self, m1):
-        """B: eq 4-6..4-8 -> M2, and derives the key schedule."""
+        """B: eq 4-6, 4-6a, 4-7, 4-8 -> M2, and derives the key schedule."""
         if m1["IDB"] != self.id:
             raise Error("M1 is not addressed to me")
         body = m1["IDA"] + m1["IDB"] + m1["pkAe"] + m1["NA"]
         if ibs.verify(self.mpk, m1["IDA"], body, m1["sigma"]) != 1:
             raise Error("Verify(params, IDA, M1, sigmaA) = 0 (eq 4-6)")
+        # eq 4-6a: NA freshness, checked by the responder before any key material exists.
+        if m1["NA"] in self.seen_na:
+            raise Error("NA of this M1 was already used by a handshake I answered (replay)")
+        self.seen_na.add(m1["NA"])
         NB = os.urandom(NAN)
         ct0, ss0 = kem_encaps(m1["pkAe"])                              # eq 4-7
         self.peer = m1["IDA"]
@@ -250,8 +257,11 @@ class Session:
         self.TH = H(self.TH, _u32(e), pke, ct, ida, idb)                  # eq 4-31
         prk = HKDF_Extract(self.state["RK"], ss + _u32(e) + self.TH)      # eq 4-31
         self.state["RK"] = HKDF_Expand(prk, LAB_RK + self.TH)
-        send = HKDF_Expand(self.state["RK"], LAB_SEND + _u32(e) + self.TH)   # eq 4-32
-        recv = HKDF_Expand(self.state["RK"], LAB_RECV + _u32(e) + self.TH)   # eq 4-33
+        # eq 4-32/4-33 take their input from PRK_e, not from the stored root key: RK is kept
+        # in session state for the next refresh, and a chain seeded from it would let a scrape
+        # rebuild this epoch's message keys backwards (F5).
+        send = HKDF_Expand(prk, LAB_SEND + _u32(e) + self.TH)
+        recv = HKDF_Expand(prk, LAB_RECV + _u32(e) + self.TH)
         self.sent_chain, self.recv_chain = (send, recv) if self.role == "initiator" else (recv, send)
         self.epoch, self.tx, self.rx_j, self.rx = e, 0, 0, set()
         self.state["sse"] = ss
