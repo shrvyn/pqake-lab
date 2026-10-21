@@ -1,0 +1,141 @@
+(****************************************************************************
+ * P.Q.A.K.E. v1, phases 2-3 (thesis eq 4-23 .. 4-37) : symbolic ACCE model
+ *
+ * Run:  proverif pqake_ratchet.pv
+ * Read: model/ACCE-PQAKE.md
+ *
+ * What this model states, in the language ACCE (IEEE S&P 2025) needs:
+ *   - a persistent state  St = {RK, CK_send, CK_recv, e, counters, TH}  (eq 5-6);
+ *   - a StateReveal oracle that prints exactly that state at one instant
+ *     (here: after the two messages of epoch 2), and nothing else.  KRA and the
+ *     per-epoch KEM secrets are NOT in the printed set, which is the reading
+ *     ch.5-2-6 intends; pqake_ratchet_kra.pv prints the state as eq 5-5
+ *     literally writes it - with KRA in it;
+ *   - erasure (eq 4-37): the printed chain key is the one that stands AFTER the
+ *     steps that consumed the earlier message keys.
+ *   - 3 epochs x 1..2 messages, one sender.  Bounded by design: ProVerif decides
+ *     reachability over this shape.
+ *
+ * Verdicts the run produces, and what they mean:
+ *   attacker(pt10) - payload of epoch 1, before the reveal   -> NOT reachable
+ *                    backward secrecy across epochs: holds (claim 6-2-5).
+ *   attacker(pt20) - payload j=0 of epoch 2, also before the reveal -> REACHABLE
+ *                    the scrape prints RK_2, and CK^send_2 = HKDF(RK_2,...) (eq
+ *                    4-32) is therefore recomputable, which unwinds the whole
+ *                    epoch backwards.  Erasure (eq 4-37) protects earlier
+ *                    *epochs*, not earlier messages of the *current* one.
+ *   attacker(pt30) - payload of epoch 3, after one refresh   -> NOT reachable
+ *                    post-compromise security: holds, because RK_3 = rootKdf(RK_2,
+ *                    ss_3, ...) and ss_3 is the KEM secret of the refresh, which the
+ *                    adversary cannot obtain without the ephemeral sk_3 that eq 4-37
+ *                    erases right after decapsulation.
+ *   attacker(kra)  - NOT reachable from the message state: the ratchet stays
+ *                    unforgeable as long as KRA is outside the scraped state.
+ ****************************************************************************)
+
+free c: channel.
+
+type kemsk.
+type kempk.
+type kemct.
+type ss.
+
+(* ---------- KDF tree of eq 4-31..4-35: one-way random oracle ---------- *)
+
+fun rootKdf(bitstring, ss, nat, bitstring): bitstring.      (* RK_e from RK_{e-1}, ss_e *)
+fun sendChain(bitstring, nat): bitstring.                    (* CK^send_e  eq 4-32 *)
+fun recvChain(bitstring, nat): bitstring.                    (* CK^recv_e  eq 4-33 *)
+fun msgKey(bitstring, nat, nat): bitstring.                  (* MK_{e,j}   eq 4-34 *)
+fun nextChain(bitstring, nat, nat): bitstring.               (* CK_{j+1}   eq 4-35 *)
+fun thStep(bitstring, nat, kempk, kemct): bitstring.         (* TH_e       eq 4-31 *)
+
+(* ---------- AES-256-GCM (eq 4-37) and the refresh MAC (eq 4-26, 4-29) ---------- *)
+
+fun aead(bitstring, bitstring, bitstring): bitstring.        (* plaintext, MK, AD *)
+reduc forall p: bitstring, a: bitstring, k: bitstring;
+      aeadDec(aead(p, k, a), k, a) = p.
+
+fun macr(bitstring, bitstring): bitstring.                   (* HMAC under KRA *)
+reduc forall k: bitstring, m: bitstring; checkmacr(macr(k, m), k) = m.
+
+(* ---------- per-epoch ML-KEM (eq 4-24, 4-28, 4-30) ---------- *)
+
+fun kemPK(kemsk): kempk.
+fun kemEncap(ss, kempk): kemct.
+reduc forall s0: ss, k: kemsk; kemDecap(kemEncap(s0, kemPK(k)), k) = s0.
+
+(* ---------- material phase 1 left behind (eq 4-14, 4-15, 4-22) ---------- *)
+
+free idA, idB: bitstring.
+free rk0: bitstring [private].
+free kra: bitstring [private].
+free th0: bitstring.
+free pt10, pt20, pt21, pt30: bitstring [private].
+
+(* ---------- the four statements ---------- *)
+
+query attacker(pt10).          (* PFS across epochs *)
+query attacker(pt20).          (* PFS inside the revealed epoch *)
+query attacker(pt30).          (* PCS after one refresh *)
+query attacker(kra).           (* refresh unforgeability *)
+
+(* ---------- honest responder B: one reply per MsgA (eq 4-27..4-30).
+         The AD of eq 4-25 also binds TH_{e-1}; the model leaves that out,
+         which only ever helps the protocol's side of the argument here,
+         because TH is public anyway. ---------- *)
+
+let responder =
+	in(c, (e: nat, pke: kempk, macA: bitstring));
+	let back = checkmacr(macA, kra) in
+	if back = (idA, idB, e, pke) then
+	new s0: ss;
+	let ct = kemEncap(s0, pke) in
+	out(c, (e, ct, macr(kra, (e, ct, macA)))).
+
+(* ---------- sender A: three epochs, one state scrape between 2 and 3 ---------- *)
+
+let sender =
+	(* ---- epoch 1 ---- *)
+	new sk1: kemsk;
+	let pk1 = kemPK(sk1) in
+	out(c, (1, pk1, macr(kra, (idA, idB, 1, pk1))));
+	in(c, (ct1: kemct, macB1: bitstring));
+	let ok1 = checkmacr(macB1, kra) in
+	if ok1 = (1, ct1, macr(kra, (idA, idB, 1, pk1))) then
+	let ss1 = kemDecap(ct1, sk1) in
+	let th1 = thStep(th0, 1, pk1, ct1) in
+	let rk1 = rootKdf(rk0, ss1, 1, th1) in
+	let ck1 = sendChain(rk1, 1) in
+	out(c, (1, 0, aead(pt10, msgKey(ck1, 1, 0), th1)));
+	(* ---- epoch 2 ---- *)
+	new sk2: kemsk;
+	let pk2 = kemPK(sk2) in
+	out(c, (2, pk2, macr(kra, (idA, idB, 2, pk2))));
+	in(c, (ct2: kemct, macB2: bitstring));
+	let ok2 = checkmacr(macB2, kra) in
+	if ok2 = (2, ct2, macr(kra, (idA, idB, 2, pk2))) then
+	let ss2 = kemDecap(ct2, sk2) in
+	let th2 = thStep(th1, 2, pk2, ct2) in
+	let rk2 = rootKdf(rk1, ss2, 2, th2) in
+	let ck2 = sendChain(rk2, 2) in
+	let ck2b = nextChain(ck2, 2, 0) in
+	out(c, (2, 0, aead(pt20, msgKey(ck2, 2, 0), th2)));
+	let ck2c = nextChain(ck2b, 2, 1) in
+	out(c, (2, 1, aead(pt21, msgKey(ck2b, 2, 1), th2)));
+	(* ============ ACCE StateReveal(message_state), eq 5-6 ============ *)
+	out(c, (rk2, ck2c, recvChain(rk2, 2), th2, 2, 2));
+	(* ---- epoch 3: the refresh that has to restore security ---- *)
+	new sk3: kemsk;
+	let pk3 = kemPK(sk3) in
+	out(c, (3, pk3, macr(kra, (idA, idB, 3, pk3))));
+	in(c, (ct3: kemct, macB3: bitstring));
+	let ok3 = checkmacr(macB3, kra) in
+	if ok3 = (3, ct3, macr(kra, (idA, idB, 3, pk3))) then
+	let ss3 = kemDecap(ct3, sk3) in
+	let th3 = thStep(th2, 3, pk3, ct3) in
+	let rk3 = rootKdf(rk2, ss3, 3, th3) in
+	let ck3 = sendChain(rk3, 3) in
+	out(c, (3, 0, aead(pt30, msgKey(ck3, 3, 0), th3))).
+
+process
+	((!responder) | sender)

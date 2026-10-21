@@ -1,0 +1,22 @@
+# Third-party code and binaries, not part of this project.
+# Upstream pins and fetch commands are recorded in README.md.
+vendor/
+
+# Build output of c/build.sh: recompilable, and mostly debug symbols.
+c/*.exe
+c/*.pdb
+c/*.obj
+
+# A file named "nul" is a reserved device name on Windows: committing it would break
+# every checkout of this tree. It is a stray redirect, not a project artefact.
+c/nul
+
+# Python bytecode.
+__pycache__/
+*.pyc
+
+# Scratch used to write the thesis section (edits a local .docx by absolute path) and
+# the structure dump it reads. Nothing here is needed to reproduce a measurement.
+tools/
+results/docstructure.txt
+results/docdump.err

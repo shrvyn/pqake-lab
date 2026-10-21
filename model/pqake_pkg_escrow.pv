@@ -1,0 +1,176 @@
+(****************************************************************************
+ * P.Q.A.K.E. v1, phase 1 (thesis eq 4-4 .. 4-21) : symbolic model
+ *
+ * Run:  proverif pqake.pv        (see model/run_model.sh)
+ * Read: model/ACCE-PQAKE.md
+ *
+ * Modelling decisions
+ *   - The IBS of ch.4-4 is idealised as an EUF-CMA signature scheme: one secret
+ *     key per identity, verification data published by the PKG.  Identity-based
+ *     derivation (usk = h_ID * s1) is arithmetic and cannot be expressed in
+ *     ProVerif's free algebra, so the master-secret break (F1) and the escrow
+ *     claim (D1) are neither provable nor refutable here; they are established
+ *     executably (lab/claims.py::c2, ::d1) and shown symbolically only in
+ *     pqake_pkg_escrow.pv.
+ *   - ML-KEM-512 (FIPS 203) is an IND-CCA KEM: encapsulation draws a fresh
+ *     shared secret and emits a ciphertext recovered only by decapsulation.
+ *   - SHA3-256 / HKDF / HMAC are a random oracle: one-way constructors, no
+ *     equations.  Knowing an input gives the outputs; knowing an output gives
+ *     nothing back.
+ *   - NA, NB, skAe and ss0 are fresh names, so the model gives the protocol every
+ *     nonce and ephemeral key it asks for.  What it does not give B is any means
+ *     of noticing that an M1 it has already accepted is being handed to it
+ *     again - which is finding F2.
+ ****************************************************************************)
+
+free c: channel.                       (* the wire: lab/net.py::Net *)
+
+type id.                               (* IIoT identity: IDA, IDB (eq 4-4) *)
+type skey.                             (* IBS secret key usk_ID *)
+type vkey.                             (* IBS verification data (mpk, ID) *)
+type sig.                              (* sigma = (w, c, z) *)
+type kemsk.                            (* ephemeral ML-KEM secret key skAe *)
+type kempk.                            (* encapsulation key pkAe *)
+type kemct.                            (* ciphertext ct0 *)
+type ss.                               (* KEM shared secret ss0 *)
+type key.                              (* PRK0, RK0, Ksess, KRA, Kconf, CKA, CKB *)
+
+(* ---------- identity-based signature, idealised as EUF-CMA ---------- *)
+
+fun ispk(skey): vkey.
+fun isig(bitstring, skey): sig.
+reduc forall m: bitstring, k: skey; iverify(isig(m, k), ispk(k)) = m.
+
+(* ---------- ML-KEM-512 as an IND-CCA KEM ---------- *)
+
+fun kemPK(kemsk): kempk.
+fun kemEncap(ss, kempk): kemct.
+reduc forall s0: ss, k: kemsk; kemDecap(kemEncap(s0, kemPK(k)), k) = s0.
+
+(* ---------- SHA3-256 / HKDF / HMAC ---------- *)
+
+fun salt(id, id, bitstring, bitstring): bitstring.                     (* eq 4-12 *)
+fun extract(bitstring, ss): key.                                       (* eq 4-13 *)
+fun hkdfExpand(key, bitstring): key.                                    (* eq 4-14..4-19 *)
+fun mac(key, bitstring): bitstring.                                    (* eq 4-20 *)
+reduc forall m: bitstring, k: key; checkmac(mac(k, m), k) = m.
+fun confdata(bitstring, bitstring): bitstring.          (* th1 = H(TH, MACB) *)
+fun transcript(id, id, bitstring, bitstring, kempk, kemct, sig, sig): bitstring. (* eq 4-11 *)
+
+(* ---------- traffic under Ksess: the ACCE test session ---------- *)
+
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m, k), k) = m.
+
+free A, B: id.
+free payloadA, payloadB: bitstring [private].
+
+(* the domain-separation labels of eq 4-14..4-19 *)
+const lKconf, lKsess: bitstring.
+
+(* ---------- queries ---------- *)
+
+(* Q1 secrecy of what the session key protects, for both roles *)
+query attacker(payloadA);
+      attacker(payloadB).
+
+event startA(id, id, bitstring, kempk).
+event acceptB(id, id, bitstring, kempk, bitstring).
+event doneA(id, id, bitstring, bitstring, key).
+event doneB(id, id, bitstring, bitstring, key).
+
+(* Q2 aliveness: whatever B accepts was started by A with the same NA and pkAe *)
+query xa: id, xb: id, na: bitstring, pka: kempk, nb: bitstring;
+      event(acceptB(xa, xb, na, pka, nb)) ==>
+      event(startA(xa, xb, na, pka)).
+
+(* Q3 injective agreement: one accepted M1 cannot be spent twice *)
+query xa: id, xb: id, na: bitstring, pka: kempk, nb: bitstring;
+      inj-event(acceptB(xa, xb, na, pka, nb)) ==>
+      inj-event(startA(xa, xb, na, pka)).
+
+(* Q4 key authentication, in the direction the channel can support: whenever B
+      finishes a session, A started one with the same identities, nonces and key.
+      (The reverse implication is not a security property of this message shape:
+      A finishes on MACB, and the adversary is free to withhold MACA, which is
+      exactly the "can only disrupt delivery" caveat of ch.5-2-1.) *)
+query xa: id, xb: id, na: bitstring, nb: bitstring, ks: key;
+      event(doneB(xa, xb, na, nb, ks)) ==>
+      event(doneA(xa, xb, na, nb, ks)).
+
+(* Q5 the same, injective: one finished B session per started A session. *)
+query xa: id, xb: id, na: bitstring, nb: bitstring, ks: key;
+      inj-event(doneB(xa, xb, na, nb, ks)) ==>
+      inj-event(doneA(xa, xb, na, nb, ks)).
+
+(* Q6 aliveness of B for A's view: A can only finish if B accepted that very M1. *)
+query xa: id, xb: id, na: bitstring, nb: bitstring, ks: key, pka: kempk;
+      event(doneA(xa, xb, na, nb, ks)) ==>
+      event(acceptB(xa, xb, na, pka, nb)).
+
+(* ---------- initiator A: eq 4-4, 4-5, 4-9, 4-10, 4-11..4-20 ---------- *)
+
+let initiator(uskA: skey, vkB: vkey) =
+	in(c, (peer: id));
+	if peer = B then
+	new NA: bitstring;
+	new skAe: kemsk;
+	let pkAe = kemPK(skAe) in
+	let sigA = isig((A, B, pkAe, NA), uskA) in
+	event startA(A, B, NA, pkAe);
+	out(c, (A, B, pkAe, NA, sigA));
+	in(c, (NB: bitstring, ct0: kemct, sigB: sig));
+	(* eq 4-9: Verify(mpk, IDB, M2, sigmaB) - and M2 must answer this very NA *)
+	let (=B, =A, =NB, =ct0, =NA) = iverify(sigB, vkB) in
+	(* eq 4-10 *)
+	let ss0 = kemDecap(ct0, skAe) in
+	let th = transcript(A, B, NA, NB, pkAe, ct0, sigA, sigB) in
+	let prk0 = extract(salt(A, B, NA, NB), ss0) in
+	let kconf = hkdfExpand(prk0, (lKconf, th)) in
+	let ksess = hkdfExpand(prk0, (lKsess, th)) in
+	(* key confirmation: MACB must be over exactly this transcript (eq 4-20) *)
+	in(c, macbWire: bitstring);
+	let macbCheck = checkmac(macbWire, kconf) in
+	if macbCheck = th then
+	event doneA(A, B, NA, NB, ksess);
+	(* skAe, NA and the handshake randomness are erased here (eq 4-37) *)
+	out(c, (mac(kconf, confdata(th, macbWire)), senc(payloadA, ksess))).
+
+(* ---------- responder B: eq 4-6, 4-7, 4-8, 4-11..4-20 ---------- *)
+
+let responder(uskB: skey, vkA: vkey) =
+	in(c, (IDA: id, IDB: id, pkAe: kempk, NA: bitstring, sigA: sig));
+	if IDB = B && IDA = A then
+	(* eq 4-6 *)
+	let (=A, =B, =pkAe, =NA) = iverify(sigA, vkA) in
+	new NB: bitstring;
+	new ss0: ss;
+	let ct0 = kemEncap(ss0, pkAe) in
+	event acceptB(A, B, NA, pkAe, NB);
+	let sigB = isig((B, A, NB, ct0, NA), uskB) in
+	out(c, (NB, ct0, sigB));
+	let th = transcript(A, B, NA, NB, pkAe, ct0, sigA, sigB) in
+	let prk0 = extract(salt(A, B, NA, NB), ss0) in
+	let kconf = hkdfExpand(prk0, (lKconf, th)) in
+	let ksess = hkdfExpand(prk0, (lKsess, th)) in
+	out(c, mac(kconf, th));
+	(* MACA must be over H(TH, MACB), so B proves it knows MACB too (eq 4-20) *)
+	in(c, macaWire: bitstring);
+	let th1 = checkmac(macaWire, kconf) in
+	if th1 = confdata(th, mac(kconf, th)) then
+	event doneB(A, B, NA, NB, ksess);
+	out(c, senc(payloadB, ksess)).
+
+(* ---------- PKG: honest identity keys, verification data public ---------- *)
+
+process
+	new uskA: skey;
+	new uskB: skey;
+	let vkA = ispk(uskA) in
+	let vkB = ispk(uskB) in
+	(* D1 / F1 as a symbolic consequence: whoever holds the PKG master secret
+	   recomputes usk_id = h_ID * s1 for every identity, so every long-term key
+	   becomes public.  The arithmetic itself is out of reach of the free
+	   algebra - lab/claims.py::c2 recovers s1 bit-exactly from ONE issued key. *)
+	out(c, (vkA, vkB, uskA, uskB));
+	((!initiator(uskA, vkB)) | (!responder(uskB, vkA)))

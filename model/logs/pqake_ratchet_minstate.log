@@ -1,0 +1,136 @@
+Process 0 (that is, the initial process):
+(
+    {1}!
+    {2}in(c, (e: nat,pke: kempk,macA: bitstring));
+    {3}let back: bitstring = checkmacr(macA,kra) in
+    {4}if (back = (idA,idB,e,pke)) then
+    {5}new s0: ss;
+    {6}let ct: kemct = kemEncap(s0,pke) in
+    {7}out(c, (e,ct,macr(kra,(e,ct,macA))))
+) | (
+    {8}new sk1: kemsk;
+    {9}let pk1: kempk = kemPK(sk1) in
+    {10}out(c, (1,pk1,macr(kra,(idA,idB,1,pk1))));
+    {11}in(c, (ct1: kemct,macB1: bitstring));
+    {12}let ok1: bitstring = checkmacr(macB1,kra) in
+    {13}if (ok1 = (1,ct1,macr(kra,(idA,idB,1,pk1)))) then
+    {14}let ss1: ss = kemDecap(ct1,sk1) in
+    {15}let th1: bitstring = thStep(th0,1,pk1,ct1) in
+    {16}let rk1: bitstring = rootKdf(rk0,ss1,1,th1) in
+    {17}let ck1: bitstring = sendChain(rk1,1) in
+    {18}out(c, (1,0,aead(pt10,msgKey(ck1,1,0),th1)));
+    {19}new sk2: kemsk;
+    {20}let pk2: kempk = kemPK(sk2) in
+    {21}out(c, (2,pk2,macr(kra,(idA,idB,2,pk2))));
+    {22}in(c, (ct2: kemct,macB2: bitstring));
+    {23}let ok2: bitstring = checkmacr(macB2,kra) in
+    {24}if (ok2 = (2,ct2,macr(kra,(idA,idB,2,pk2)))) then
+    {25}let ss2: ss = kemDecap(ct2,sk2) in
+    {26}let th2: bitstring = thStep(th1,2,pk2,ct2) in
+    {27}let rk2: bitstring = rootKdf(rk1,ss2,2,th2) in
+    {28}let ck2: bitstring = sendChain(rk2,2) in
+    {29}let ck2b: bitstring = nextChain(ck2,2,0) in
+    {30}out(c, (2,0,aead(pt20,msgKey(ck2,2,0),th2)));
+    {31}let ck2c: bitstring = nextChain(ck2b,2,1) in
+    {32}out(c, (2,1,aead(pt21,msgKey(ck2b,2,1),th2)));
+    {33}out(c, (ck2c,recvChain(rk2,2),th2,2,2));
+    {34}new sk3: kemsk;
+    {35}let pk3: kempk = kemPK(sk3) in
+    {36}out(c, (3,pk3,macr(kra,(idA,idB,3,pk3))));
+    {37}in(c, (ct3: kemct,macB3: bitstring));
+    {38}let ok3: bitstring = checkmacr(macB3,kra) in
+    {39}if (ok3 = (3,ct3,macr(kra,(idA,idB,3,pk3)))) then
+    {40}let ss3: ss = kemDecap(ct3,sk3) in
+    {41}let th3: bitstring = thStep(th2,3,pk3,ct3) in
+    {42}let rk3: bitstring = rootKdf(rk2,ss3,3,th3) in
+    {43}let ck3: bitstring = sendChain(rk3,3) in
+    {44}out(c, (3,0,aead(pt30,msgKey(ck3,3,0),th3)))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+(
+    {1}!
+    {2}in(c, (e: nat,pke: kempk,macA: bitstring));
+    {3}let back: bitstring = checkmacr(macA,kra) in
+    {4}if (back = (idA,idB,e,pke)) then
+    {5}new s0: ss;
+    {6}let ct: kemct = kemEncap(s0,pke) in
+    {7}out(c, (e,ct,macr(kra,(e,ct,macA))))
+) | (
+    {8}new sk1: kemsk;
+    {9}let pk1: kempk = kemPK(sk1) in
+    {10}out(c, (1,pk1,macr(kra,(idA,idB,1,pk1))));
+    {11}in(c, (ct1: kemct,macB1: bitstring));
+    {12}let ok1: bitstring = checkmacr(macB1,kra) in
+    {13}if (ok1 = (1,ct1,macr(kra,(idA,idB,1,pk1)))) then
+    {14}let ss1: ss = kemDecap(ct1,sk1) in
+    {15}let th1: bitstring = thStep(th0,1,pk1,ct1) in
+    {16}let rk1: bitstring = rootKdf(rk0,ss1,1,th1) in
+    {17}let ck1: bitstring = sendChain(rk1,1) in
+    {18}out(c, (1,0,aead(pt10,msgKey(ck1,1,0),th1)));
+    {19}new sk2: kemsk;
+    {20}let pk2: kempk = kemPK(sk2) in
+    {21}out(c, (2,pk2,macr(kra,(idA,idB,2,pk2))));
+    {22}in(c, (ct2: kemct,macB2: bitstring));
+    {23}let ok2: bitstring = checkmacr(macB2,kra) in
+    {24}if (ok2 = (2,ct2,macr(kra,(idA,idB,2,pk2)))) then
+    {25}let ss2: ss = kemDecap(ct2,sk2) in
+    {26}let th2: bitstring = thStep(th1,2,pk2,ct2) in
+    {27}let rk2: bitstring = rootKdf(rk1,ss2,2,th2) in
+    {28}let ck2: bitstring = sendChain(rk2,2) in
+    {30}out(c, (2,0,aead(pt20,msgKey(ck2,2,0),th2)));
+    {29}let ck2b: bitstring = nextChain(ck2,2,0) in
+    {32}out(c, (2,1,aead(pt21,msgKey(ck2b,2,1),th2)));
+    {31}let ck2c: bitstring = nextChain(ck2b,2,1) in
+    {33}out(c, (ck2c,recvChain(rk2,2),th2,2,2));
+    {34}new sk3: kemsk;
+    {35}let pk3: kempk = kemPK(sk3) in
+    {36}out(c, (3,pk3,macr(kra,(idA,idB,3,pk3))));
+    {37}in(c, (ct3: kemct,macB3: bitstring));
+    {38}let ok3: bitstring = checkmacr(macB3,kra) in
+    {39}if (ok3 = (3,ct3,macr(kra,(idA,idB,3,pk3)))) then
+    {40}let ss3: ss = kemDecap(ct3,sk3) in
+    {41}let th3: bitstring = thStep(th2,3,pk3,ct3) in
+    {42}let rk3: bitstring = rootKdf(rk2,ss3,3,th3) in
+    {43}let ck3: bitstring = sendChain(rk3,3) in
+    {44}out(c, (3,0,aead(pt30,msgKey(ck3,3,0),th3)))
+)
+
+-- Query not attacker(pt10[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 144 rules (43 with conclusion selected). Queue: 4 rules.
+Starting query not attacker(pt10[])
+RESULT not attacker(pt10[]) is true.
+-- Query not attacker(pt20[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 144 rules (43 with conclusion selected). Queue: 4 rules.
+Starting query not attacker(pt20[])
+RESULT not attacker(pt20[]) is true.
+-- Query not attacker(pt30[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 144 rules (43 with conclusion selected). Queue: 4 rules.
+Starting query not attacker(pt30[])
+RESULT not attacker(pt30[]) is true.
+-- Query not attacker(kra[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 144 rules (43 with conclusion selected). Queue: 4 rules.
+Starting query not attacker(kra[])
+RESULT not attacker(kra[]) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker(pt10[]) is true.
+
+Query not attacker(pt20[]) is true.
+
+Query not attacker(pt30[]) is true.
+
+Query not attacker(kra[]) is true.
+
+--------------------------------------------------------------
+

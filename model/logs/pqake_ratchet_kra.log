@@ -1,0 +1,821 @@
+Process 0 (that is, the initial process):
+(
+    {1}!
+    {2}in(c, (e: nat,pke: kempk,macA: bitstring));
+    {3}let back: bitstring = checkmacr(macA,kra) in
+    {4}if (back = (idA,idB,e,pke)) then
+    {5}new s0: ss;
+    {6}let ct: kemct = kemEncap(s0,pke) in
+    {7}out(c, (e,ct,macr(kra,(e,ct,macA))))
+) | (
+    {8}new sk1: kemsk;
+    {9}let pk1: kempk = kemPK(sk1) in
+    {10}out(c, (1,pk1,macr(kra,(idA,idB,1,pk1))));
+    {11}in(c, (ct1: kemct,macB1: bitstring));
+    {12}let ok1: bitstring = checkmacr(macB1,kra) in
+    {13}if (ok1 = (1,ct1,macr(kra,(idA,idB,1,pk1)))) then
+    {14}let ss1: ss = kemDecap(ct1,sk1) in
+    {15}let th1: bitstring = thStep(th0,1,pk1,ct1) in
+    {16}let rk1: bitstring = rootKdf(rk0,ss1,1,th1) in
+    {17}let ck1: bitstring = sendChain(rk1,1) in
+    {18}out(c, (1,0,aead(pt10,msgKey(ck1,1,0),th1)));
+    {19}new sk2: kemsk;
+    {20}let pk2: kempk = kemPK(sk2) in
+    {21}out(c, (2,pk2,macr(kra,(idA,idB,2,pk2))));
+    {22}in(c, (ct2: kemct,macB2: bitstring));
+    {23}let ok2: bitstring = checkmacr(macB2,kra) in
+    {24}if (ok2 = (2,ct2,macr(kra,(idA,idB,2,pk2)))) then
+    {25}let ss2: ss = kemDecap(ct2,sk2) in
+    {26}let th2: bitstring = thStep(th1,2,pk2,ct2) in
+    {27}let rk2: bitstring = rootKdf(rk1,ss2,2,th2) in
+    {28}let ck2: bitstring = sendChain(rk2,2) in
+    {29}let ck2b: bitstring = nextChain(ck2,2,0) in
+    {30}out(c, (2,0,aead(pt20,msgKey(ck2,2,0),th2)));
+    {31}let ck2c: bitstring = nextChain(ck2b,2,1) in
+    {32}out(c, (2,1,aead(pt21,msgKey(ck2b,2,1),th2)));
+    {33}out(c, (rk2,ck2c,recvChain(rk2,2),th2,2,2,kra));
+    {34}new sk3: kemsk;
+    {35}let pk3: kempk = kemPK(sk3) in
+    {36}out(c, (3,pk3,macr(kra,(idA,idB,3,pk3))));
+    {37}in(c, (ct3: kemct,macB3: bitstring));
+    {38}let ok3: bitstring = checkmacr(macB3,kra) in
+    {39}if (ok3 = (3,ct3,macr(kra,(idA,idB,3,pk3)))) then
+    {40}let ss3: ss = kemDecap(ct3,sk3) in
+    {41}let th3: bitstring = thStep(th2,3,pk3,ct3) in
+    {42}let rk3: bitstring = rootKdf(rk2,ss3,3,th3) in
+    {43}let ck3: bitstring = sendChain(rk3,3) in
+    {44}out(c, (3,0,aead(pt30,msgKey(ck3,3,0),th3)))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+(
+    {1}!
+    {2}in(c, (e: nat,pke: kempk,macA: bitstring));
+    {3}let back: bitstring = checkmacr(macA,kra) in
+    {4}if (back = (idA,idB,e,pke)) then
+    {5}new s0: ss;
+    {6}let ct: kemct = kemEncap(s0,pke) in
+    {7}out(c, (e,ct,macr(kra,(e,ct,macA))))
+) | (
+    {8}new sk1: kemsk;
+    {9}let pk1: kempk = kemPK(sk1) in
+    {10}out(c, (1,pk1,macr(kra,(idA,idB,1,pk1))));
+    {11}in(c, (ct1: kemct,macB1: bitstring));
+    {12}let ok1: bitstring = checkmacr(macB1,kra) in
+    {13}if (ok1 = (1,ct1,macr(kra,(idA,idB,1,pk1)))) then
+    {14}let ss1: ss = kemDecap(ct1,sk1) in
+    {15}let th1: bitstring = thStep(th0,1,pk1,ct1) in
+    {16}let rk1: bitstring = rootKdf(rk0,ss1,1,th1) in
+    {17}let ck1: bitstring = sendChain(rk1,1) in
+    {18}out(c, (1,0,aead(pt10,msgKey(ck1,1,0),th1)));
+    {19}new sk2: kemsk;
+    {20}let pk2: kempk = kemPK(sk2) in
+    {21}out(c, (2,pk2,macr(kra,(idA,idB,2,pk2))));
+    {22}in(c, (ct2: kemct,macB2: bitstring));
+    {23}let ok2: bitstring = checkmacr(macB2,kra) in
+    {24}if (ok2 = (2,ct2,macr(kra,(idA,idB,2,pk2)))) then
+    {25}let ss2: ss = kemDecap(ct2,sk2) in
+    {26}let th2: bitstring = thStep(th1,2,pk2,ct2) in
+    {27}let rk2: bitstring = rootKdf(rk1,ss2,2,th2) in
+    {28}let ck2: bitstring = sendChain(rk2,2) in
+    {30}out(c, (2,0,aead(pt20,msgKey(ck2,2,0),th2)));
+    {29}let ck2b: bitstring = nextChain(ck2,2,0) in
+    {32}out(c, (2,1,aead(pt21,msgKey(ck2b,2,1),th2)));
+    {31}let ck2c: bitstring = nextChain(ck2b,2,1) in
+    {33}out(c, (rk2,ck2c,recvChain(rk2,2),th2,2,2,kra));
+    {34}new sk3: kemsk;
+    {35}let pk3: kempk = kemPK(sk3) in
+    {36}out(c, (3,pk3,macr(kra,(idA,idB,3,pk3))));
+    {37}in(c, (ct3: kemct,macB3: bitstring));
+    {38}let ok3: bitstring = checkmacr(macB3,kra) in
+    {39}if (ok3 = (3,ct3,macr(kra,(idA,idB,3,pk3)))) then
+    {40}let ss3: ss = kemDecap(ct3,sk3) in
+    {41}let th3: bitstring = thStep(th2,3,pk3,ct3) in
+    {42}let rk3: bitstring = rootKdf(rk2,ss3,3,th3) in
+    {43}let ck3: bitstring = sendChain(rk3,3) in
+    {44}out(c, (3,0,aead(pt30,msgKey(ck3,3,0),th3)))
+)
+
+-- Query not attacker(pt10[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 126 rules (40 with conclusion selected). Queue: 21 rules.
+400 rules inserted. Base: 214 rules (56 with conclusion selected). Queue: 83 rules.
+600 rules inserted. Base: 286 rules (71 with conclusion selected). Queue: 67 rules.
+800 rules inserted. Base: 266 rules (98 with conclusion selected). Queue: 29 rules.
+1000 rules inserted. Base: 298 rules (111 with conclusion selected). Queue: 20 rules.
+Starting query not attacker(pt10[])
+RESULT not attacker(pt10[]) is true.
+-- Query not attacker(pt20[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 126 rules (40 with conclusion selected). Queue: 21 rules.
+400 rules inserted. Base: 214 rules (56 with conclusion selected). Queue: 83 rules.
+600 rules inserted. Base: 286 rules (71 with conclusion selected). Queue: 67 rules.
+800 rules inserted. Base: 266 rules (98 with conclusion selected). Queue: 29 rules.
+1000 rules inserted. Base: 298 rules (111 with conclusion selected). Queue: 20 rules.
+Starting query not attacker(pt20[])
+goal reachable: attacker(pt20[])
+
+Derivation:
+Abbreviations:
+s0_1 = s0[macA = macr(kra[],(idA[],idB[],1,kemPK(sk1[]))),pke = kemPK(sk1[]),e = 1,!1 = @sid]
+sk2_1 = sk2[macB1 = macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))),ct1 = kemEncap(s0_1,kemPK(sk1[]))]
+s0_2 = s0[macA = macr(kra[],(idA[],idB[],2,kemPK(sk2_1))),pke = kemPK(sk2_1),e = 2,!1 = @sid_1]
+
+1. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) may be sent to the attacker at output {10}.
+attacker((1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+
+2. By 1, the attacker may know (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(idA[],idB[],1,kemPK(sk1[]))).
+attacker(macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+
+3. By 1, the attacker may know (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk1[]).
+attacker(kemPK(sk1[])).
+
+4. Using the function 0 the attacker may obtain 0.
+attacker(0).
+
+5. By 4, the attacker may know 0.
+Using the function + the attacker may obtain 1.
+attacker(1).
+
+6. By 5, the attacker may know 1.
+By 3, the attacker may know kemPK(sk1[]).
+By 2, the attacker may know macr(kra[],(idA[],idB[],1,kemPK(sk1[]))).
+Using the function 3-tuple the attacker may obtain (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+attacker((1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+
+7. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) that the attacker may have by 6 may be received at input {2}.
+So the message (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) may be sent to the attacker at output {7}.
+attacker((1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+8. By 7, the attacker may know (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+attacker(macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+
+9. By 7, the attacker may know (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_1,kemPK(sk1[])).
+attacker(kemEncap(s0_1,kemPK(sk1[]))).
+
+10. By 9, the attacker may know kemEncap(s0_1,kemPK(sk1[])).
+By 8, the attacker may know macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+attacker((kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+11. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 10 may be received at input {11}.
+So the message (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))) may be sent to the attacker at output {21}.
+attacker((2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+
+12. By 11, the attacker may know (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(idA[],idB[],2,kemPK(sk2_1))).
+attacker(macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+
+13. By 11, the attacker may know (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk2_1).
+attacker(kemPK(sk2_1)).
+
+14. By 5, the attacker may know 1.
+Using the function + the attacker may obtain 2.
+attacker(2).
+
+15. By 14, the attacker may know 2.
+By 13, the attacker may know kemPK(sk2_1).
+By 12, the attacker may know macr(kra[],(idA[],idB[],2,kemPK(sk2_1))).
+Using the function 3-tuple the attacker may obtain (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+attacker((2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+
+16. The message (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))) that the attacker may have by 15 may be received at input {2}.
+So the message (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) may be sent to the attacker at output {7}.
+attacker((2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))))).
+
+17. By 16, the attacker may know (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_2,kemPK(sk2_1)).
+attacker(kemEncap(s0_2,kemPK(sk2_1))).
+
+18. The attacker initially knows th0[].
+attacker(th0[]).
+
+19. By 18, the attacker may know th0[].
+By 5, the attacker may know 1.
+By 3, the attacker may know kemPK(sk1[]).
+By 9, the attacker may know kemEncap(s0_1,kemPK(sk1[])).
+Using the function thStep the attacker may obtain thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))).
+attacker(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))).
+
+20. By 19, the attacker may know thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))).
+By 14, the attacker may know 2.
+By 13, the attacker may know kemPK(sk2_1).
+By 17, the attacker may know kemEncap(s0_2,kemPK(sk2_1)).
+Using the function thStep the attacker may obtain thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))).
+attacker(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+
+21. By 16, the attacker may know (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+attacker(macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+
+22. By 17, the attacker may know kemEncap(s0_2,kemPK(sk2_1)).
+By 21, the attacker may know macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+attacker((kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))))).
+
+23. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 10 may be received at input {11}.
+The message (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) that the attacker may have by 22 may be received at input {22}.
+So the message (rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[]) may be sent to the attacker at output {33}.
+attacker((rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[])).
+
+24. By 23, the attacker may know (rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[]).
+Using the function 1-proj-7-tuple the attacker may obtain rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+attacker(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))))).
+
+25. By 24, the attacker may know rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+By 14, the attacker may know 2.
+Using the function sendChain the attacker may obtain sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2).
+attacker(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2)).
+
+26. By 25, the attacker may know sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2).
+By 14, the attacker may know 2.
+By 4, the attacker may know 0.
+Using the function msgKey the attacker may obtain msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0).
+attacker(msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0)).
+
+27. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 10 may be received at input {11}.
+The message (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) that the attacker may have by 22 may be received at input {22}.
+So the message (2,0,aead(pt20[],msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))))) may be sent to the attacker at output {30}.
+attacker((2,0,aead(pt20[],msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))))).
+
+28. By 27, the attacker may know (2,0,aead(pt20[],msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))))).
+Using the function 3-proj-3-tuple the attacker may obtain aead(pt20[],msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+attacker(aead(pt20[],msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))))).
+
+29. By 28, the attacker may know aead(pt20[],msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+By 26, the attacker may know msgKey(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0).
+By 20, the attacker may know thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))).
+Using the function aeadDec the attacker may obtain pt20[].
+attacker(pt20[]).
+
+30. By 29, attacker(pt20[]).
+The goal is reached, represented in the following fact:
+attacker(pt20[]).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new sk1: kemsk creating sk1_1 at {8}
+
+out(c, (1,~M,~M_1)) with ~M = kemPK(sk1_1), ~M_1 = macr(kra,(idA,idB,1,kemPK(sk1_1))) at {10}
+
+in(c, (1,~M,~M_1)) with ~M = kemPK(sk1_1), ~M_1 = macr(kra,(idA,idB,1,kemPK(sk1_1))) at {2} in copy a
+
+new s0: ss creating s0_3 at {5} in copy a
+
+out(c, (1,~M_2,~M_3)) with ~M_2 = kemEncap(s0_3,kemPK(sk1_1)), ~M_3 = macr(kra,(1,kemEncap(s0_3,kemPK(sk1_1)),macr(kra,(idA,idB,1,kemPK(sk1_1))))) at {7} in copy a
+
+in(c, (~M_2,~M_3)) with ~M_2 = kemEncap(s0_3,kemPK(sk1_1)), ~M_3 = macr(kra,(1,kemEncap(s0_3,kemPK(sk1_1)),macr(kra,(idA,idB,1,kemPK(sk1_1))))) at {11}
+
+out(c, (1,0,~M_4)) with ~M_4 = aead(pt10,msgKey(sendChain(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),1),1,0),thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))) at {18}
+
+new sk2: kemsk creating sk2_2 at {19}
+
+out(c, (2,~M_5,~M_6)) with ~M_5 = kemPK(sk2_2), ~M_6 = macr(kra,(idA,idB,2,kemPK(sk2_2))) at {21}
+
+in(c, (2,~M_5,~M_6)) with ~M_5 = kemPK(sk2_2), ~M_6 = macr(kra,(idA,idB,2,kemPK(sk2_2))) at {2} in copy a_1
+
+new s0: ss creating s0_4 at {5} in copy a_1
+
+out(c, (2,~M_7,~M_8)) with ~M_7 = kemEncap(s0_4,kemPK(sk2_2)), ~M_8 = macr(kra,(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra,(idA,idB,2,kemPK(sk2_2))))) at {7} in copy a_1
+
+in(c, (~M_7,~M_8)) with ~M_7 = kemEncap(s0_4,kemPK(sk2_2)), ~M_8 = macr(kra,(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra,(idA,idB,2,kemPK(sk2_2))))) at {22}
+
+out(c, (2,0,~M_9)) with ~M_9 = aead(pt20,msgKey(sendChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))) at {30}
+
+out(c, (2,1,~M_10)) with ~M_10 = aead(pt21,msgKey(nextChain(sendChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1),thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))) at {32}
+
+out(c, (~M_11,~M_12,~M_13,~M_14,2,2,~M_15)) with ~M_11 = rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))), ~M_12 = nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1), ~M_13 = recvChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2), ~M_14 = thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2))), ~M_15 = kra at {33}
+
+new sk3: kemsk creating sk3_1 at {34}
+
+out(c, (3,~M_16,~M_17)) with ~M_16 = kemPK(sk3_1), ~M_17 = macr(kra,(idA,idB,3,kemPK(sk3_1))) at {36}
+
+The attacker has the message aeadDec(~M_9,msgKey(sendChain(~M_11,2),2,0),thStep(thStep(th0,1,~M,~M_2),2,~M_5,~M_7)) = pt20.
+A trace has been found.
+RESULT not attacker(pt20[]) is false.
+-- Query not attacker(pt30[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 126 rules (40 with conclusion selected). Queue: 21 rules.
+400 rules inserted. Base: 214 rules (56 with conclusion selected). Queue: 83 rules.
+600 rules inserted. Base: 286 rules (71 with conclusion selected). Queue: 67 rules.
+800 rules inserted. Base: 266 rules (98 with conclusion selected). Queue: 29 rules.
+1000 rules inserted. Base: 298 rules (111 with conclusion selected). Queue: 20 rules.
+Starting query not attacker(pt30[])
+goal reachable: attacker(pt30[])
+
+Derivation:
+Abbreviations:
+s0_1 = s0[macA = macr(kra[],(idA[],idB[],1,kemPK(sk1[]))),pke = kemPK(sk1[]),e = 1,!1 = @sid]
+sk2_1 = sk2[macB1 = macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))),ct1 = kemEncap(s0_1,kemPK(sk1[]))]
+s0_2 = s0[macA = macr(kra[],(idA[],idB[],2,kemPK(sk2_1))),pke = kemPK(sk2_1),e = 2,!1 = @sid_1]
+sk3_1 = sk3[macB2 = macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))),ct2 = kemEncap(s0_2,kemPK(sk2_1)),macB1 = macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))),ct1 = kemEncap(s0_1,kemPK(sk1[]))]
+s0_3 = s0[macA = macr(kra[],(idA[],idB[],1,kemPK(sk1[]))),pke = kemPK(sk1[]),e = 1,!1 = @sid_2]
+sk2_2 = sk2[macB1 = macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))),ct1 = kemEncap(s0_3,kemPK(sk1[]))]
+s0_4 = s0[macA = macr(kra[],(idA[],idB[],2,kemPK(sk2_2))),pke = kemPK(sk2_2),e = 2,!1 = @sid_3]
+
+1. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) may be sent to the attacker at output {10}.
+attacker((1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+
+2. By 1, the attacker may know (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(idA[],idB[],1,kemPK(sk1[]))).
+attacker(macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+
+3. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) that the attacker may have by 1 may be received at input {2}.
+So the message (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) may be sent to the attacker at output {7}.
+attacker((1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+4. By 3, the attacker may know (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_1,kemPK(sk1[])).
+attacker(kemEncap(s0_1,kemPK(sk1[]))).
+
+5. Using the function 0 the attacker may obtain 0.
+attacker(0).
+
+6. By 5, the attacker may know 0.
+Using the function + the attacker may obtain 1.
+attacker(1).
+
+7. By 6, the attacker may know 1.
+By 4, the attacker may know kemEncap(s0_1,kemPK(sk1[])).
+By 2, the attacker may know macr(kra[],(idA[],idB[],1,kemPK(sk1[]))).
+Using the function 3-tuple the attacker may obtain (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+attacker((1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+
+8. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) that the attacker may have by 1 may be received at input {2}.
+So the message (1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) may be sent to the attacker at output {7}.
+attacker((1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+9. By 8, the attacker may know (1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+attacker(macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+
+10. By 8, the attacker may know (1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_3,kemPK(sk1[])).
+attacker(kemEncap(s0_3,kemPK(sk1[]))).
+
+11. By 10, the attacker may know kemEncap(s0_3,kemPK(sk1[])).
+By 9, the attacker may know macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+attacker((kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+12. The message (kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 11 may be received at input {11}.
+So the message (2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))) may be sent to the attacker at output {21}.
+attacker((2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2))))).
+
+13. By 12, the attacker may know (2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(idA[],idB[],2,kemPK(sk2_2))).
+attacker(macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))).
+
+14. By 12, the attacker may know (2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk2_2).
+attacker(kemPK(sk2_2)).
+
+15. By 6, the attacker may know 1.
+Using the function + the attacker may obtain 2.
+attacker(2).
+
+16. By 15, the attacker may know 2.
+By 14, the attacker may know kemPK(sk2_2).
+By 13, the attacker may know macr(kra[],(idA[],idB[],2,kemPK(sk2_2))).
+Using the function 3-tuple the attacker may obtain (2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))).
+attacker((2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2))))).
+
+17. The message (2,kemPK(sk2_2),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))) that the attacker may have by 16 may be received at input {2}.
+So the message (2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))))) may be sent to the attacker at output {7}.
+attacker((2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2))))))).
+
+18. By 17, the attacker may know (2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2))))).
+attacker(macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))))).
+
+19. By 17, the attacker may know (2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_4,kemPK(sk2_2)).
+attacker(kemEncap(s0_4,kemPK(sk2_2))).
+
+20. By 19, the attacker may know kemEncap(s0_4,kemPK(sk2_2)).
+By 18, the attacker may know macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))))).
+attacker((kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2))))))).
+
+21. The message (kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_3,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 11 may be received at input {11}.
+The message (kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra[],(idA[],idB[],2,kemPK(sk2_2)))))) that the attacker may have by 20 may be received at input {22}.
+So the message (rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2))),2,2,kra[]) may be sent to the attacker at output {33}.
+attacker((rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2))),2,2,kra[])).
+
+22. By 21, the attacker may know (rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_3,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[])))),s0_4,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_3,kemPK(sk1[]))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2))),2,2,kra[]).
+Using the function 7-proj-7-tuple the attacker may obtain kra[].
+attacker(kra[]).
+
+23. By 22, the attacker may know kra[].
+By 7, the attacker may know (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function macr the attacker may obtain macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+attacker(macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+
+24. By 4, the attacker may know kemEncap(s0_1,kemPK(sk1[])).
+By 23, the attacker may know macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+attacker((kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+25. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 24 may be received at input {11}.
+So the message (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))) may be sent to the attacker at output {21}.
+attacker((2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+
+26. By 25, the attacker may know (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk2_1).
+attacker(kemPK(sk2_1)).
+
+27. The attacker initially knows idB[].
+attacker(idB[]).
+
+28. The attacker initially knows idA[].
+attacker(idA[]).
+
+29. By 28, the attacker may know idA[].
+By 27, the attacker may know idB[].
+By 15, the attacker may know 2.
+By 26, the attacker may know kemPK(sk2_1).
+Using the function 4-tuple the attacker may obtain (idA[],idB[],2,kemPK(sk2_1)).
+attacker((idA[],idB[],2,kemPK(sk2_1))).
+
+30. By 22, the attacker may know kra[].
+By 29, the attacker may know (idA[],idB[],2,kemPK(sk2_1)).
+Using the function macr the attacker may obtain macr(kra[],(idA[],idB[],2,kemPK(sk2_1))).
+attacker(macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+
+31. The message (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))) that the attacker may have by 25 may be received at input {2}.
+So the message (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) may be sent to the attacker at output {7}.
+attacker((2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))))).
+
+32. By 31, the attacker may know (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_2,kemPK(sk2_1)).
+attacker(kemEncap(s0_2,kemPK(sk2_1))).
+
+33. By 15, the attacker may know 2.
+By 32, the attacker may know kemEncap(s0_2,kemPK(sk2_1)).
+By 30, the attacker may know macr(kra[],(idA[],idB[],2,kemPK(sk2_1))).
+Using the function 3-tuple the attacker may obtain (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+attacker((2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+
+34. By 22, the attacker may know kra[].
+By 33, the attacker may know (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+Using the function macr the attacker may obtain macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+attacker(macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+
+35. By 32, the attacker may know kemEncap(s0_2,kemPK(sk2_1)).
+By 34, the attacker may know macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+attacker((kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))))).
+
+36. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 24 may be received at input {11}.
+The message (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) that the attacker may have by 35 may be received at input {22}.
+So the message (3,kemPK(sk3_1),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))) may be sent to the attacker at output {36}.
+attacker((3,kemPK(sk3_1),macr(kra[],(idA[],idB[],3,kemPK(sk3_1))))).
+
+37. By 36, the attacker may know (3,kemPK(sk3_1),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk3_1).
+attacker(kemPK(sk3_1)).
+
+38. The attacker has some term ss3_1.
+attacker(ss3_1).
+
+39. By 38, the attacker may know ss3_1.
+By 37, the attacker may know kemPK(sk3_1).
+Using the function kemEncap the attacker may obtain kemEncap(ss3_1,kemPK(sk3_1)).
+attacker(kemEncap(ss3_1,kemPK(sk3_1))).
+
+40. By 15, the attacker may know 2.
+Using the function + the attacker may obtain 3.
+attacker(3).
+
+41. By 1, the attacker may know (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk1[]).
+attacker(kemPK(sk1[])).
+
+42. The attacker initially knows th0[].
+attacker(th0[]).
+
+43. By 42, the attacker may know th0[].
+By 6, the attacker may know 1.
+By 41, the attacker may know kemPK(sk1[]).
+By 4, the attacker may know kemEncap(s0_1,kemPK(sk1[])).
+Using the function thStep the attacker may obtain thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))).
+attacker(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))).
+
+44. By 43, the attacker may know thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))).
+By 15, the attacker may know 2.
+By 26, the attacker may know kemPK(sk2_1).
+By 32, the attacker may know kemEncap(s0_2,kemPK(sk2_1)).
+Using the function thStep the attacker may obtain thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))).
+attacker(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+
+45. By 44, the attacker may know thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))).
+By 40, the attacker may know 3.
+By 37, the attacker may know kemPK(sk3_1).
+By 39, the attacker may know kemEncap(ss3_1,kemPK(sk3_1)).
+Using the function thStep the attacker may obtain thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))).
+attacker(thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))).
+
+46. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 24 may be received at input {11}.
+The message (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) that the attacker may have by 35 may be received at input {22}.
+So the message (rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[]) may be sent to the attacker at output {33}.
+attacker((rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[])).
+
+47. By 46, the attacker may know (rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[]).
+Using the function 1-proj-7-tuple the attacker may obtain rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+attacker(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))))).
+
+48. By 47, the attacker may know rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))).
+By 38, the attacker may know ss3_1.
+By 40, the attacker may know 3.
+By 45, the attacker may know thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))).
+Using the function rootKdf the attacker may obtain rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))).
+attacker(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))))).
+
+49. By 48, the attacker may know rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))).
+By 40, the attacker may know 3.
+Using the function sendChain the attacker may obtain sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3).
+attacker(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3)).
+
+50. By 49, the attacker may know sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3).
+By 40, the attacker may know 3.
+By 5, the attacker may know 0.
+Using the function msgKey the attacker may obtain msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0).
+attacker(msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0)).
+
+51. By 28, the attacker may know idA[].
+By 27, the attacker may know idB[].
+By 40, the attacker may know 3.
+By 37, the attacker may know kemPK(sk3_1).
+Using the function 4-tuple the attacker may obtain (idA[],idB[],3,kemPK(sk3_1)).
+attacker((idA[],idB[],3,kemPK(sk3_1))).
+
+52. By 22, the attacker may know kra[].
+By 51, the attacker may know (idA[],idB[],3,kemPK(sk3_1)).
+Using the function macr the attacker may obtain macr(kra[],(idA[],idB[],3,kemPK(sk3_1))).
+attacker(macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))).
+
+53. By 40, the attacker may know 3.
+By 39, the attacker may know kemEncap(ss3_1,kemPK(sk3_1)).
+By 52, the attacker may know macr(kra[],(idA[],idB[],3,kemPK(sk3_1))).
+Using the function 3-tuple the attacker may obtain (3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))).
+attacker((3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1))))).
+
+54. By 22, the attacker may know kra[].
+By 53, the attacker may know (3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))).
+Using the function macr the attacker may obtain macr(kra[],(3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1))))).
+attacker(macr(kra[],(3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))))).
+
+55. By 39, the attacker may know kemEncap(ss3_1,kemPK(sk3_1)).
+By 54, the attacker may know macr(kra[],(3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))))).
+attacker((kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1))))))).
+
+56. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 24 may be received at input {11}.
+The message (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) that the attacker may have by 35 may be received at input {22}.
+The message (kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(3,kemEncap(ss3_1,kemPK(sk3_1)),macr(kra[],(idA[],idB[],3,kemPK(sk3_1)))))) that the attacker may have by 55 may be received at input {37}.
+So the message (3,0,aead(pt30[],msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0),thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))))) may be sent to the attacker at output {44}.
+attacker((3,0,aead(pt30[],msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0),thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))))).
+
+57. By 56, the attacker may know (3,0,aead(pt30[],msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0),thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))))).
+Using the function 3-proj-3-tuple the attacker may obtain aead(pt30[],msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0),thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))).
+attacker(aead(pt30[],msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0),thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))))).
+
+58. By 57, the attacker may know aead(pt30[],msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0),thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))).
+By 50, the attacker may know msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),ss3_1,3,thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1)))),3),3,0).
+By 45, the attacker may know thStep(thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),3,kemPK(sk3_1),kemEncap(ss3_1,kemPK(sk3_1))).
+Using the function aeadDec the attacker may obtain pt30[].
+attacker(pt30[]).
+
+59. By 58, attacker(pt30[]).
+The goal is reached, represented in the following fact:
+attacker(pt30[]).
+
+
+Unified @sid_3 with @sid_1
+Unified @sid_2 with @sid
+The clause after UnifyDerivationPrecise is
+attacker(pt30[])
+This clause still contradicts the query.
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new sk1: kemsk creating sk1_1 at {8}
+
+out(c, (1,~M,~M_1)) with ~M = kemPK(sk1_1), ~M_1 = macr(kra,(idA,idB,1,kemPK(sk1_1))) at {10}
+
+in(c, (1,~M,~M_1)) with ~M = kemPK(sk1_1), ~M_1 = macr(kra,(idA,idB,1,kemPK(sk1_1))) at {2} in copy a
+
+new s0: ss creating s0_5 at {5} in copy a
+
+out(c, (1,~M_2,~M_3)) with ~M_2 = kemEncap(s0_5,kemPK(sk1_1)), ~M_3 = macr(kra,(1,kemEncap(s0_5,kemPK(sk1_1)),macr(kra,(idA,idB,1,kemPK(sk1_1))))) at {7} in copy a
+
+in(c, (~M_2,~M_3)) with ~M_2 = kemEncap(s0_5,kemPK(sk1_1)), ~M_3 = macr(kra,(1,kemEncap(s0_5,kemPK(sk1_1)),macr(kra,(idA,idB,1,kemPK(sk1_1))))) at {11}
+
+out(c, (1,0,~M_4)) with ~M_4 = aead(pt10,msgKey(sendChain(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),1),1,0),thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))) at {18}
+
+new sk2: kemsk creating sk2_3 at {19}
+
+out(c, (2,~M_5,~M_6)) with ~M_5 = kemPK(sk2_3), ~M_6 = macr(kra,(idA,idB,2,kemPK(sk2_3))) at {21}
+
+in(c, (2,~M_5,~M_6)) with ~M_5 = kemPK(sk2_3), ~M_6 = macr(kra,(idA,idB,2,kemPK(sk2_3))) at {2} in copy a_1
+
+new s0: ss creating s0_6 at {5} in copy a_1
+
+out(c, (2,~M_7,~M_8)) with ~M_7 = kemEncap(s0_6,kemPK(sk2_3)), ~M_8 = macr(kra,(2,kemEncap(s0_6,kemPK(sk2_3)),macr(kra,(idA,idB,2,kemPK(sk2_3))))) at {7} in copy a_1
+
+in(c, (~M_7,~M_8)) with ~M_7 = kemEncap(s0_6,kemPK(sk2_3)), ~M_8 = macr(kra,(2,kemEncap(s0_6,kemPK(sk2_3)),macr(kra,(idA,idB,2,kemPK(sk2_3))))) at {22}
+
+out(c, (2,0,~M_9)) with ~M_9 = aead(pt20,msgKey(sendChain(rootKdf(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),s0_6,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))),2),2,0),thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))) at {30}
+
+out(c, (2,1,~M_10)) with ~M_10 = aead(pt21,msgKey(nextChain(sendChain(rootKdf(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),s0_6,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))),2),2,0),2,1),thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))) at {32}
+
+out(c, (~M_11,~M_12,~M_13,~M_14,2,2,~M_15)) with ~M_11 = rootKdf(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),s0_6,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))), ~M_12 = nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),s0_6,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))),2),2,0),2,1), ~M_13 = recvChain(rootKdf(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),s0_6,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))),2), ~M_14 = thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3))), ~M_15 = kra at {33}
+
+new sk3: kemsk creating sk3_2 at {34}
+
+out(c, (3,~M_16,~M_17)) with ~M_16 = kemPK(sk3_2), ~M_17 = macr(kra,(idA,idB,3,kemPK(sk3_2))) at {36}
+
+in(c, (kemEncap(a_2,~M_16),macr(~M_15,(3,kemEncap(a_2,~M_16),macr(~M_15,(idA,idB,3,~M_16)))))) with kemEncap(a_2,~M_16) = kemEncap(a_2,kemPK(sk3_2)), macr(~M_15,(3,kemEncap(a_2,~M_16),macr(~M_15,(idA,idB,3,~M_16)))) = macr(kra,(3,kemEncap(a_2,kemPK(sk3_2)),macr(kra,(idA,idB,3,kemPK(sk3_2))))) at {37}
+
+out(c, (3,0,~M_18)) with ~M_18 = aead(pt30,msgKey(sendChain(rootKdf(rootKdf(rootKdf(rk0,s0_5,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1)))),s0_6,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3)))),a_2,3,thStep(thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3))),3,kemPK(sk3_2),kemEncap(a_2,kemPK(sk3_2)))),3),3,0),thStep(thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_5,kemPK(sk1_1))),2,kemPK(sk2_3),kemEncap(s0_6,kemPK(sk2_3))),3,kemPK(sk3_2),kemEncap(a_2,kemPK(sk3_2)))) at {44}
+
+The attacker has the message aeadDec(~M_18,msgKey(sendChain(rootKdf(~M_11,a_2,3,thStep(thStep(thStep(th0,1,~M,~M_2),2,~M_5,~M_7),3,~M_16,kemEncap(a_2,~M_16))),3),3,0),thStep(thStep(thStep(th0,1,~M,~M_2),2,~M_5,~M_7),3,~M_16,kemEncap(a_2,~M_16))) = pt30.
+A trace has been found.
+RESULT not attacker(pt30[]) is false.
+-- Query not attacker(kra[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 126 rules (40 with conclusion selected). Queue: 21 rules.
+400 rules inserted. Base: 214 rules (56 with conclusion selected). Queue: 83 rules.
+600 rules inserted. Base: 286 rules (71 with conclusion selected). Queue: 67 rules.
+800 rules inserted. Base: 266 rules (98 with conclusion selected). Queue: 29 rules.
+1000 rules inserted. Base: 298 rules (111 with conclusion selected). Queue: 20 rules.
+Starting query not attacker(kra[])
+goal reachable: attacker(kra[])
+
+Derivation:
+Abbreviations:
+s0_1 = s0[macA = macr(kra[],(idA[],idB[],1,kemPK(sk1[]))),pke = kemPK(sk1[]),e = 1,!1 = @sid]
+sk2_1 = sk2[macB1 = macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))),ct1 = kemEncap(s0_1,kemPK(sk1[]))]
+s0_2 = s0[macA = macr(kra[],(idA[],idB[],2,kemPK(sk2_1))),pke = kemPK(sk2_1),e = 2,!1 = @sid_1]
+
+1. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) may be sent to the attacker at output {10}.
+attacker((1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+
+2. By 1, the attacker may know (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(idA[],idB[],1,kemPK(sk1[]))).
+attacker(macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+
+3. By 1, the attacker may know (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk1[]).
+attacker(kemPK(sk1[])).
+
+4. Using the function 0 the attacker may obtain 0.
+attacker(0).
+
+5. By 4, the attacker may know 0.
+Using the function + the attacker may obtain 1.
+attacker(1).
+
+6. By 5, the attacker may know 1.
+By 3, the attacker may know kemPK(sk1[]).
+By 2, the attacker may know macr(kra[],(idA[],idB[],1,kemPK(sk1[]))).
+Using the function 3-tuple the attacker may obtain (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))).
+attacker((1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+
+7. The message (1,kemPK(sk1[]),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))) that the attacker may have by 6 may be received at input {2}.
+So the message (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) may be sent to the attacker at output {7}.
+attacker((1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+8. By 7, the attacker may know (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+attacker(macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+
+9. By 7, the attacker may know (1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_1,kemPK(sk1[])).
+attacker(kemEncap(s0_1,kemPK(sk1[]))).
+
+10. By 9, the attacker may know kemEncap(s0_1,kemPK(sk1[])).
+By 8, the attacker may know macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))).
+attacker((kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[]))))))).
+
+11. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 10 may be received at input {11}.
+So the message (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))) may be sent to the attacker at output {21}.
+attacker((2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+
+12. By 11, the attacker may know (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(idA[],idB[],2,kemPK(sk2_1))).
+attacker(macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+
+13. By 11, the attacker may know (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+Using the function 2-proj-3-tuple the attacker may obtain kemPK(sk2_1).
+attacker(kemPK(sk2_1)).
+
+14. By 5, the attacker may know 1.
+Using the function + the attacker may obtain 2.
+attacker(2).
+
+15. By 14, the attacker may know 2.
+By 13, the attacker may know kemPK(sk2_1).
+By 12, the attacker may know macr(kra[],(idA[],idB[],2,kemPK(sk2_1))).
+Using the function 3-tuple the attacker may obtain (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))).
+attacker((2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+
+16. The message (2,kemPK(sk2_1),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))) that the attacker may have by 15 may be received at input {2}.
+So the message (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) may be sent to the attacker at output {7}.
+attacker((2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))))).
+
+17. By 16, the attacker may know (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+Using the function 3-proj-3-tuple the attacker may obtain macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+attacker(macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+
+18. By 16, the attacker may know (2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+Using the function 2-proj-3-tuple the attacker may obtain kemEncap(s0_2,kemPK(sk2_1)).
+attacker(kemEncap(s0_2,kemPK(sk2_1))).
+
+19. By 18, the attacker may know kemEncap(s0_2,kemPK(sk2_1)).
+By 17, the attacker may know macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))).
+Using the function 2-tuple the attacker may obtain (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))).
+attacker((kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1))))))).
+
+20. The message (kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(1,kemEncap(s0_1,kemPK(sk1[])),macr(kra[],(idA[],idB[],1,kemPK(sk1[])))))) that the attacker may have by 10 may be received at input {11}.
+The message (kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(2,kemEncap(s0_2,kemPK(sk2_1)),macr(kra[],(idA[],idB[],2,kemPK(sk2_1)))))) that the attacker may have by 19 may be received at input {22}.
+So the message (rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[]) may be sent to the attacker at output {33}.
+attacker((rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[])).
+
+21. By 20, the attacker may know (rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),2,0),2,1),recvChain(rootKdf(rootKdf(rk0[],s0_1,1,thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[])))),s0_2,2,thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1)))),2),thStep(thStep(th0[],1,kemPK(sk1[]),kemEncap(s0_1,kemPK(sk1[]))),2,kemPK(sk2_1),kemEncap(s0_2,kemPK(sk2_1))),2,2,kra[]).
+Using the function 7-proj-7-tuple the attacker may obtain kra[].
+attacker(kra[]).
+
+22. By 21, attacker(kra[]).
+The goal is reached, represented in the following fact:
+attacker(kra[]).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new sk1: kemsk creating sk1_1 at {8}
+
+out(c, (1,~M,~M_1)) with ~M = kemPK(sk1_1), ~M_1 = macr(kra,(idA,idB,1,kemPK(sk1_1))) at {10}
+
+in(c, (1,~M,~M_1)) with ~M = kemPK(sk1_1), ~M_1 = macr(kra,(idA,idB,1,kemPK(sk1_1))) at {2} in copy a
+
+new s0: ss creating s0_3 at {5} in copy a
+
+out(c, (1,~M_2,~M_3)) with ~M_2 = kemEncap(s0_3,kemPK(sk1_1)), ~M_3 = macr(kra,(1,kemEncap(s0_3,kemPK(sk1_1)),macr(kra,(idA,idB,1,kemPK(sk1_1))))) at {7} in copy a
+
+in(c, (~M_2,~M_3)) with ~M_2 = kemEncap(s0_3,kemPK(sk1_1)), ~M_3 = macr(kra,(1,kemEncap(s0_3,kemPK(sk1_1)),macr(kra,(idA,idB,1,kemPK(sk1_1))))) at {11}
+
+out(c, (1,0,~M_4)) with ~M_4 = aead(pt10,msgKey(sendChain(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),1),1,0),thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))) at {18}
+
+new sk2: kemsk creating sk2_2 at {19}
+
+out(c, (2,~M_5,~M_6)) with ~M_5 = kemPK(sk2_2), ~M_6 = macr(kra,(idA,idB,2,kemPK(sk2_2))) at {21}
+
+in(c, (2,~M_5,~M_6)) with ~M_5 = kemPK(sk2_2), ~M_6 = macr(kra,(idA,idB,2,kemPK(sk2_2))) at {2} in copy a_1
+
+new s0: ss creating s0_4 at {5} in copy a_1
+
+out(c, (2,~M_7,~M_8)) with ~M_7 = kemEncap(s0_4,kemPK(sk2_2)), ~M_8 = macr(kra,(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra,(idA,idB,2,kemPK(sk2_2))))) at {7} in copy a_1
+
+in(c, (~M_7,~M_8)) with ~M_7 = kemEncap(s0_4,kemPK(sk2_2)), ~M_8 = macr(kra,(2,kemEncap(s0_4,kemPK(sk2_2)),macr(kra,(idA,idB,2,kemPK(sk2_2))))) at {22}
+
+out(c, (2,0,~M_9)) with ~M_9 = aead(pt20,msgKey(sendChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))) at {30}
+
+out(c, (2,1,~M_10)) with ~M_10 = aead(pt21,msgKey(nextChain(sendChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1),thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))) at {32}
+
+out(c, (~M_11,~M_12,~M_13,~M_14,2,2,~M_15)) with ~M_11 = rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))), ~M_12 = nextChain(nextChain(sendChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2),2,0),2,1), ~M_13 = recvChain(rootKdf(rootKdf(rk0,s0_3,1,thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1)))),s0_4,2,thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2)))),2), ~M_14 = thStep(thStep(th0,1,kemPK(sk1_1),kemEncap(s0_3,kemPK(sk1_1))),2,kemPK(sk2_2),kemEncap(s0_4,kemPK(sk2_2))), ~M_15 = kra at {33}
+
+new sk3: kemsk creating sk3_1 at {34}
+
+out(c, (3,~M_16,~M_17)) with ~M_16 = kemPK(sk3_1), ~M_17 = macr(kra,(idA,idB,3,kemPK(sk3_1))) at {36}
+
+The attacker has the message ~M_15 = kra.
+A trace has been found.
+RESULT not attacker(kra[]) is false.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker(pt10[]) is true.
+
+Query not attacker(pt20[]) is false.
+
+Query not attacker(pt30[]) is false.
+
+Query not attacker(kra[]) is false.
+
+--------------------------------------------------------------
+
