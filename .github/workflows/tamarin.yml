@@ -38,6 +38,7 @@ jobs:
           chmod a+x ~/.local/bin/maude
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           tamarin-prover --version
+          tamarin-prover --help > model/help.txt 2>&1 || true
 
       - name: Prove every model
         run: |
@@ -45,7 +46,7 @@ jobs:
           for f in model/*.spthy; do
             name=$(basename "$f" .spthy)
             echo "===== $name"
-            tamarin-prover --prove --compute-traces "$f" > "model/logs/$name.tamarin.log" 2>&1
+            tamarin-prover --prove "$f" > "model/logs/$name.tamarin.log" 2>&1
             echo "exit $?"
             tail -30 "model/logs/$name.tamarin.log"
           done
@@ -72,7 +73,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tamarin-logs
-          path: model/logs/*.tamarin.log
+          path: |
+            model/logs/*.tamarin.log
+            model/help.txt
 
       # The transcripts are published to a bot-owned branch so that they can be
       # read back with plain `git fetch origin tamarin-logs`, without a gh
@@ -85,5 +88,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan tamarin-logs
           git add model/logs/*.tamarin.log
+          git add -f model/help.txt
           git commit -qm "Tamarin 1.12 transcripts for ${{ github.sha }} [skip ci]"
           git push -f origin tamarin-logs
