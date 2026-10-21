@@ -59,12 +59,15 @@ functions:
 
 rule PKG_gen:
   [ Fr( ~uskA ), Fr( ~uskB) ]
-  -->
+  --[ LtkGen( 'A', ~uskA ), LtkGen( 'B', ~uskB ) ]->
   [ !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ) ]
 
+/* LtkGen is an action fact rather than a stored !Ltk atom because 1.12 did not
+   enforce a restriction written over stored facts in this theory; see the long
+   note at one_accept_per_M1 in pqake_replay_fixed.spthy. */
 restriction one_key_per_identity:
   "All id k1 k2 #i #j.
-     !Ltk( id, k1 ) @ i & !Ltk( id, k2 ) @ j
+     LtkGen( id, k1 ) @ i & LtkGen( id, k2 ) @ j
      ==>
      #i = #j"
 

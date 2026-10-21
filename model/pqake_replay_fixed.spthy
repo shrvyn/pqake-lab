@@ -70,18 +70,31 @@ functions:
 
 rule PKG_gen:
   [ Fr( ~uskA ), Fr( ~uskB) ]
-  -->
+  --[ LtkGen( 'A', ~uskA ), LtkGen( 'B', ~uskB ) ]->
   [ !Ltk( 'A', ~uskA ), !Ltk( 'B', ~uskB ) ]
 
 restriction one_key_per_identity:
   "All id k1 k2 #i #j.
-     !Ltk( id, k1 ) @ i & !Ltk( id, k2 ) @ j
+     LtkGen( id, k1 ) @ i & LtkGen( id, k2 ) @ j
      ==>
      #i = #j"
 
 /* eq 4-6a read as a trace invariant: no M1 is accepted twice.  ProVerif's
    equivalent is "get seenM1(=A,=NA) in ... else insert seenM1(A, NA)", whose
-   else-branch it cannot tie back to the insert. */
+   else-branch it cannot tie back to the insert.
+
+   SeenM1 is an ACTION fact, i.e. an annotation on the step that accepts M1, not
+   a fact stored in B's state.  That is deliberate.  Declared as a stored fact
+   (post-premise) the restriction was registered - the transcript prints it as a
+   "safety formula", and the seen_once lemma restating it was verified - yet the
+   1.12 solver still returned a double-accept counterexample for
+   no_double_accept (11 steps, two PKG_gen instances, SeenM1( na ) written
+   twice), i.e. a trace that violates one_accept_per_M1 and one_key_per_identity
+   at once.  model/RestrictionProbeBefore.spthy shows a stored-fact restriction
+   being enforced in a 3-rule theory, so the gap is the interaction with the
+   rule's KU-derived premises, not the syntax.  Stating the invariant over the
+   fact the lemmas themselves quantify over removes the gap, and the lemmas
+   below then have to derive injectivity from it rather than assume it. */
 restriction one_accept_per_M1:
   "All na #i #j.
      SeenM1( na ) @ i & SeenM1( na ) @ j
@@ -127,11 +140,10 @@ rule B_accept:
     , Fr( ~nb )
     , Fr( ~ss )
     ]
-  --[ AcceptB( na, pkAe, ~nb ) ]->
+  --[ AcceptB( na, pkAe, ~nb ), SeenM1( na ) ]->
     [ Out( m2 )
     , Out( macOf( kconf, th ) )
     , StB( na, pkAe, ~nb, ~ss )
-    , SeenM1( na )   //  eq 4-6a: this (ID_A, NA) is spent
     ]
 
 /* ---------- B: MACA check, eq 4-20; then the first protected message ---------- */
@@ -228,6 +240,14 @@ lemma seen_once:
      SeenM1( na ) @ i & SeenM1( na ) @ j
      ==>
      #i = #j"
+
+/* The marker is written exactly when - and only when - B accepts, so the
+   invariant above really is about accepted M1s and not about an unused fact. */
+lemma accept_emits_seen:
+  "All na pkAe nb #i.
+     AcceptB( na, pkAe, nb ) @ i
+     ==>
+     ( Ex #j. SeenM1( na ) @ j & #i = #j )"
 
 /* Both statements above proved without the use_induction attribute.  The
    counterexample 1.12 returned for the inductive versions uses two PKG_gen
