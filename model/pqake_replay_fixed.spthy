@@ -299,4 +299,24 @@ lemma handshake_possible:
   "Ex na nb ks #i #j.
      DoneA( na, nb, ks ) @ i & DoneB( na, nb, ks ) @ j"
 
+/* Controls, so that the verdict on Q3 cannot be an artefact of a rule set that
+   simply has no traces.  Both are existence statements, so "falsified - no trace
+   found" is a real result and not a vacuous "verified".
+
+   replay_trace_excluded: the F2 replay - one M1 accepted twice.  pqake.spthy
+   proves this exists (that is finding F2 as a Tamarin trace); here it must not.
+   two_ltk_excluded: two long-term keys issued to identity 'A'.  Must not exist
+   in either theory, which is what makes the single-honest-key reading of
+   pqake.pv's `new uskA` the one the proofs see. */
+lemma replay_trace_excluded:
+  exists-trace
+  "Ex na pkAe nb1 nb2 #i #j.
+     AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
+     & not( #i = #j )"
+
+lemma two_ltk_excluded:
+  exists-trace
+  "Ex k1 k2 #i #j.
+     LtkGen( 'A', k1 ) @ i & LtkGen( 'A', k2 ) @ j & not( #i = #j )"
+
 end

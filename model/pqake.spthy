@@ -243,4 +243,19 @@ lemma handshake_possible:
   "Ex na nb ks #i #j.
      DoneA( na, nb, ks ) @ i & DoneB( na, nb, ks ) @ j"
 
+/* The F2 replay stated as a trace that must EXIST: the same M1 accepted twice.
+   pqake_replay_fixed.spthy carries the identical lemma and it must not exist
+   there, so the pair is a controlled comparison rather than a difference in how
+   the property was worded. */
+lemma replay_trace_exists:
+  exists-trace
+  "Ex na pkAe nb1 nb2 #i #j.
+     AcceptB( na, pkAe, nb1 ) @ i & AcceptB( na, pkAe, nb2 ) @ j
+     & not( #i = #j )"
+
+lemma two_ltk_excluded:
+  exists-trace
+  "Ex k1 k2 #i #j.
+     LtkGen( 'A', k1 ) @ i & LtkGen( 'A', k2 ) @ j & not( #i = #j )"
+
 end
